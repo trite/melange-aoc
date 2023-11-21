@@ -1,0 +1,10 @@
+; (dirs y2022)
+
+; (subdir y2022 (dirs blah blah2 blah3))
+
+; (include_subdirs unqualified)
+
+(library
+ (name aoc)
+ (modes melange)
+ (libraries y2022))

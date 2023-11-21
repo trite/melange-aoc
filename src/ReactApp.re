@@ -3,7 +3,11 @@ module App = {
   // Melange has been installed correctly for JS bundlers to be able to find it.
   [@react.component]
   let make = () =>
-    ["Hello " ++ World.name ++ "!", "This is React!"]
+    [
+      "Aoc path test: " ++ Aoc.aocTest,
+      "This is React!",
+      "subdirs test:" ++ Aoc.Y2022.D01.day01,
+    ]
     ->Belt.List.map(greeting => <h1> greeting->React.string </h1>)
     ->Belt.List.toArray
     ->React.array;
