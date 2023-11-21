@@ -1,14 +1,8 @@
+(* Not sure if I'll use the OCaml version, but it works: *)
+
 let testInput =
   "1000\n2000\n3000\n\n4000\n\n5000\n6000\n\n7000\n8000\n9000\n\n10000"
 
-
-(* let (>>) f g x = g (f x)
-
-   (* let parse = String.split_on_char '\n' >> List.map Belt.Int.fromString >>
-   Belt.List.keepMap (Belt.Option.mapWithDefault 0 (fun x -> x)) *) let parse =
-   String.
-
-   let testing123 = parse testInput *)
 
 let splitList delim lst =
   let rec go lst delim acc =
@@ -24,67 +18,24 @@ let splitList delim lst =
           | h2 :: t2 ->
               go t delim ((h :: h2) :: t2) )
   in
-  Stdlib.List.rev (go lst delim [])
+  List.reverse (go lst delim [])
 
 
-let intOptionListToIntListResult lst =
-  let rec go lst acc =
-    match lst with
-    | [] ->
-        Belt.Result.Ok (Stdlib.List.rev acc)
-    | h :: t -> (
-      match h with
-      | None ->
-          Belt.Result.Error "Failed to parse input string"
-      | Some x ->
-          go t (x :: acc) )
-  in
-  go lst []
-
-
-let intOptionListListToIntListListResult lst =
-  let rec go lst acc =
-    match lst with
-    | [] ->
-        Belt.Result.Ok (Stdlib.List.rev acc)
-    | h :: t -> (
-      match h with
-      | Belt.Result.Error x ->
-          Belt.Result.Error x
-      | Belt.Result.Ok x ->
-          go t (x :: acc) )
-  in
-  go lst []
-
-
-let optionToResult x =
-  match x with
-  | None ->
-      Belt.Result.Error "Failed to parse input string"
-  | Some x ->
-      Belt.Result.Ok x
-
-
-(* let parse x = let firstSplit = String.split_on_char '\n' x in let secondSplit
-   = splitList firstSplit "" in List.map (List.map Belt.Int.fromString)
-   secondSplit *)
-(* let fromStr = List.map (List.map Belt.Int.fromString) secondSplit in let next
-   = intOptionListListToIntListListResult fromStr *)
-
-(* let ( >> ) f g x = g (f x) *)
-
-let ( >> ) = Relude.Globals.( >> )
-
-let parse x =
-  x
-  |> Stdlib.String.split_on_char '\n'
-  |> splitList ""
-  |> List.map
-       (List.map (fun z -> z |> Belt.Int.fromString |> Belt.Option.getExn))
-
-
-let parse2 =
-  (* Stdlib.String.split_on_char '\n' *)
+let parse =
   String.splitList ~delimiter:"\n"
   >> splitList ""
-  >> List.map (List.map (Belt.Int.fromString >> Belt.Option.getExn))
+  >> List.map
+       ( List.map
+           (Int.fromString >> Result.fromOption "Failed to parse input string")
+       >> List.Result.sequence )
+  >> List.Result.sequence
+
+
+let doWork partFunc =
+  parse >> Result.fold (fun err -> "Error: " ^ err) (partFunc >> Int.toString)
+
+
+let part1 = List.maxBy Int.compare >> Option.getOrThrow
+
+let part2 =
+  List.sortBy (Int.compare |> Ord.reverse) >> List.take 3 >> List.Int.sum
