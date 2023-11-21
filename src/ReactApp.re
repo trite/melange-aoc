@@ -5,12 +5,14 @@ module App = {
       {[
          "Aoc path test: " ++ Aoc.aocTest,
          "This is React!",
-         "subdirs test:" ++ Aoc.Y2022.D01.day01,
+         //  "subdirs test:" ++ Aoc.Y2022.D01.testInput,
        ]
        ->Belt.List.map(greeting => <h1> greeting->React.string </h1>)
        ->Belt.List.toArray
        ->React.array}
       <hr />
+      // <pre> Aoc.Y2022.D01.testInput->React.string </pre>
+      <Aoc.Y2022.D01 />
       <div> <Aoc.Y2022.D02 /> </div>
     </div>;
 };
