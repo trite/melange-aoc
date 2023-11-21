@@ -1,3 +1,14 @@
 (library
  (name y2022)
- (modes melange))
+ (modes melange)
+ (libraries reason-react melange.belt)
+ ; By default, Dune will include all modules in the folder to the targets. With `modules` field
+ ; we can tweak this default behavior by excluding `hello` from the list of targets of this stanza.
+ ; See https://dune.readthedocs.io/en/stable/reference/predicate-language.html#predicate-language
+ ; (modules :standard \ hello)
+ ; Uncomment the following to copy the generated JavaScript files inside the source tree
+ ; (promote (until-clean))
+ (preprocess
+  ; The `pps` field is a list of ppx to apply to the sources before generating JavaScript. melange.ppx allows to use Melange attributes [@mel. ...] (https://melange.re/v2.0.0/communicate-with-javascript/#attributes)
+  ; reason-react-ppx allows to use JSX for ReasonReact components by using the [@JSX] attributes from Reason: https://reasonml.github.io/docs/en/jsx
+  (pps melange.ppx reason-react-ppx)))

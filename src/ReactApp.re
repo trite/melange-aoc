@@ -1,16 +1,18 @@
 module App = {
-  // This sample forces an import of Belt.*, so that CI builds can ensure that
-  // Melange has been installed correctly for JS bundlers to be able to find it.
   [@react.component]
   let make = () =>
-    [
-      "Aoc path test: " ++ Aoc.aocTest,
-      "This is React!",
-      "subdirs test:" ++ Aoc.Y2022.D01.day01,
-    ]
-    ->Belt.List.map(greeting => <h1> greeting->React.string </h1>)
-    ->Belt.List.toArray
-    ->React.array;
+    <div>
+      {[
+         "Aoc path test: " ++ Aoc.aocTest,
+         "This is React!",
+         "subdirs test:" ++ Aoc.Y2022.D01.day01,
+       ]
+       ->Belt.List.map(greeting => <h1> greeting->React.string </h1>)
+       ->Belt.List.toArray
+       ->React.array}
+      <hr />
+      <div> <Aoc.Y2022.D02 /> </div>
+    </div>;
 };
 
 ReactDOM.querySelector("#root")
