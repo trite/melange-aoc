@@ -7,9 +7,10 @@ module App = {
          "This is React!",
          //  "subdirs test:" ++ Aoc.Y2022.D01.testInput,
        ]
-       ->Belt.List.map(greeting => <h1> greeting->React.string </h1>)
-       ->Belt.List.toArray
-       ->React.array}
+       |> List.map(greeting => <h1> greeting->React.string </h1>)
+       |> List.toArray
+       //  |> List.String.
+       |> React.array}
       <hr />
       // <pre> Aoc.Y2022.D01.testInput->React.string </pre>
       <Aoc.Y2022.D01 />
