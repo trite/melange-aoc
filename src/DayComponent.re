@@ -21,7 +21,14 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
     setPart2Result(_ => i |> Day.doPart2);
   };
 
-  <div className="container mt-6">
+  <div className="container mt-6 is-centered">
+    <div className="columns is-centered">
+      <div className="column is-three-quarters">
+        <a href="#" onClick={_ => ReasonReactRouter.push("/")}>
+          {"<- Home" |> React.string}
+        </a>
+      </div>
+    </div>
     <div className="columns is-centered">
       <div className="column is-half">
         <div className="box">
@@ -54,10 +61,12 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
       </div>
       <div className="column is-one-quarter">
         <div className="box">
-          <h1 className="title"> {"Part 1 Result" |> React.string} </h1>
+          <h1 className="title"> {"Results" |> React.string} </h1>
+          <br />
+          <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
           <textarea className="textarea" value=part1Result readOnly=true />
           <br />
-          <h1 className="title"> {"Part 2 Result" |> React.string} </h1>
+          <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
           <textarea className="textarea" value=part2Result readOnly=true />
         </div>
       </div>

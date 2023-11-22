@@ -86,3 +86,11 @@ let part2 = ((opponent, self)) =>
   | Draw => (Draw |> outcomeToScore) + (opponent |> moveToScore)
   | Win => (Win |> outcomeToScore) + (opponent |> winAgainst |> moveToScore)
   };
+
+let doPart1 = doWork(part1);
+
+let doPart2 = doWork(part2);
+
+let testInput = Day02Data.testInput;
+
+let actualInput = Day02Data.actualInput;
