@@ -26,7 +26,7 @@ let make = () =>
       {DayList.daysMap
        |> StringMap.toList
        |> List.map(((url, _)) =>
-            <div className="content">
+            <div key=url className="content">
               <a href="#" onClick={_ => ReasonReactRouter.push(url)}>
                 {url |> getName |> React.string}
               </a>
