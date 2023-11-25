@@ -12,7 +12,7 @@ let getName = url => {
     ++ String.sliceToEnd(1, day)
 
   | _ =>
-    "Error determining name for this entry!["
+    "Error determining name for this entry! ["
     ++ (urlList |> List.String.joinWith(" | "))
     ++ "]"
   };
