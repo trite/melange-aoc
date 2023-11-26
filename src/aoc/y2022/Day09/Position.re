@@ -57,4 +57,7 @@ module List = {
     | (_, _) => None
     };
   };
+
+  let contains = (~find: parentT, positions: t) =>
+    List.containsBy(eq, find, positions);
 };

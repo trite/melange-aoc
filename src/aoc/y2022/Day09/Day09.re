@@ -90,6 +90,72 @@ type positionInfo = {
   tailVisited: Position.Set.t,
 };
 
+let makeGrid = ({head, middle, tail, tailVisited: _}: positionInfo) => {
+  let positions = [head, ...middle] |> List.append(tail);
+
+  let minX =
+    positions
+    |> List.map(Position.getX)
+    |> List.Int.min
+    |> Shared.Option.getOrFailWith("minX");
+  let maxX =
+    positions
+    |> List.map(Position.getX)
+    |> List.Int.max
+    |> Shared.Option.getOrFailWith("maxX");
+
+  let minY =
+    positions
+    |> List.map(Position.getY)
+    |> List.Int.min
+    |> Shared.Option.getOrFailWith("minY");
+  let maxY =
+    positions
+    |> List.map(Position.getY)
+    |> List.Int.max
+    |> Shared.Option.getOrFailWith("maxY");
+
+  let gridX = maxX - minX;
+  let gridY = maxY - minY;
+
+  let makeCell = (position, positions, name) =>
+    Position.List.contains(~find=position, positions) ? name : ".";
+
+  let makeCell = (position, positions) =>
+    (
+      if (Position.eq(position, head)) {
+        "H";
+      } else if (Position.List.contains(~find=position, middle)) {
+        middle
+        |> List.mapWithIndex((p, i) => (p, i))
+        |> List.keep(((p, _i)) => Position.eq(p, position))
+        |> List.map(((_p, i)) => i + 1)
+        |> List.Int.min
+        |> Shared.Option.getOrFailWith("makeCell failure")
+        |> Int.toString;
+      } else {
+        "T";
+      }
+    )
+    |> makeCell(position, positions);
+
+  let grid =
+    Int.rangeAsList(0, gridY + 1)
+    |> List.map(y =>
+         Int.rangeAsList(0, gridX + 1)
+         |> List.map(x => makeCell(Position.fromTuple((x, y)), positions))
+         |> List.String.join
+       )
+    |> List.reverse
+    |> List.String.joinWith("\n");
+
+  {j|
+(minX, minY), (maxX, maxY)
+($minX, $minY), ($maxX, $maxY)
+$grid
+  |j};
+};
+
 let getTranslationToApply =
     ({x: x1, y: y1}: Position.t, {x: x2, y: y2}: Position.t): Translation.t =>
   switch (x1 - x2, y1 - y2) {
@@ -118,6 +184,12 @@ let getTranslationToApply =
   | (1, 2)
   | (2, 1) => {dx: 1, dy: 1} // upper-right
 
+  // this seems like it shouldn't be possible, but it does happen:
+  | (2, 2) => {dx: 1, dy: 1}
+  | ((-2), 2) => {dx: (-1), dy: 1}
+  | (2, (-2)) => {dx: 1, dy: (-1)}
+  | ((-2), (-2)) => {dx: (-1), dy: (-1)}
+
   // OH NOES
   | _ =>
     raise(
@@ -139,7 +211,10 @@ let showPosition = ({x, y}: Position.t) => {j|{x: $x, y: $y}|j};
 let showTranslation = ({dx, dy}: Translation.t) => {j|{dx: $dx, dy: $dy}|j};
 
 let showPositionInfo =
-    (~description="", {head, middle, tail, tailVisited}: positionInfo) => {
+    (
+      ~description="",
+      {head, middle, tail, tailVisited} as positions: positionInfo,
+    ) => {
   let surround = (b, e, t) => b ++ t ++ e;
 
   let lHead = head |> showPosition;
@@ -160,12 +235,16 @@ let showPositionInfo =
     |> List.String.joinWith(", ")
     |> surround("[", "]");
 
+  let grid = makeGrid(positions);
+
   {j|
   ----position info ($description)----
     head: $lHead,
     middle: $lMiddle,
     tail: $lTail,
-    tailVisited: $lTailVisited
+    tailVisited: $lTailVisited,
+    grid:
+$grid
   ------------------------------------
 |j};
 };
@@ -179,10 +258,18 @@ let applyMoveIncrement =
   let applyMoveInner =
       (move: move, {x: startX, y: startY}: Position.t): (move, Position.t) =>
     switch (move) {
-    | Up(y) => (Up(y - 1), {x: startX, y: startY + 1})
-    | Down(y) => (Down(y - 1), {x: startX, y: startY - 1})
-    | Left(x) => (Left(x - 1), {x: startX - 1, y: startY})
-    | Right(x) => (Right(x - 1), {x: startX + 1, y: startY})
+    | Up(y) =>
+      Js.log({j|Move: Up $y|j});
+      (Up(y - 1), {x: startX, y: startY + 1});
+    | Down(y) =>
+      Js.log({j|Move: Down $y|j});
+      (Down(y - 1), {x: startX, y: startY - 1});
+    | Left(x) =>
+      Js.log({j|Move: Left $x|j});
+      (Left(x - 1), {x: startX - 1, y: startY});
+    | Right(x) =>
+      Js.log({j|Move: Right $x|j});
+      (Right(x - 1), {x: startX + 1, y: startY});
     };
 
   let (restOfMove, newHead) = head |> applyMoveInner(move);
@@ -233,16 +320,21 @@ let applyMoveIncrement =
 };
 
 let rec applyMove = ((positionInfo, move), debug) => {
-  let debugOpt = debug ? Some(positionInfo) : None;
+  let applyMoveInner = ((positionInfo, move), debug) => {
+    let debugOpt = debug ? Some(positionInfo) : None;
 
-  debug
-    ? Js.log(positionInfo |> showPositionInfo(~description="before")) : ();
+    debug
+      ? Js.log(positionInfo |> showPositionInfo(~description="before")) : ();
 
-  let (newPositionInfo, newMove) =
-    applyMoveIncrement(positionInfo, move, debugOpt);
+    let (newPositionInfo, newMove) =
+      applyMoveIncrement(positionInfo, move, debugOpt);
 
-  debug
-    ? Js.log(newPositionInfo |> showPositionInfo(~description="after")) : ();
+    debug
+      ? Js.log(newPositionInfo |> showPositionInfo(~description="after"))
+      : ();
+
+    applyMove((newPositionInfo, newMove), debug);
+  };
 
   switch (move) {
   | Up(a)
@@ -253,7 +345,7 @@ let rec applyMove = ((positionInfo, move), debug) => {
   | Down(a)
   | Left(a)
   | Right(a) when a < 0 => raise(Failure("Check your logic!"))
-  | _ => applyMove((newPositionInfo, newMove), debug)
+  | _ => applyMoveInner((positionInfo, move), debug)
   };
 };
 
@@ -316,7 +408,7 @@ let parseMoves =
 let run = (part, debug: bool, data) =>
   data |> parseMoves |> part(debug) |> Int.toString;
 
-let doPart1 = run(part1, false);
+let doPart1 = run(part1, true);
 
 let doPart2 = run(part2, false);
 
