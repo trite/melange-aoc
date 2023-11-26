@@ -115,35 +115,34 @@ let makeGrid = ({head, middle, tail, tailVisited: _}: positionInfo) => {
     |> List.Int.max
     |> Shared.Option.getOrFailWith("maxY");
 
-  let gridX = maxX - minX;
-  let gridY = maxY - minY;
+  // let makeCell = (position, positions, name) =>
+  //   Position.List.contains(~find=position, positions) ? name : ".";
 
-  let makeCell = (position, positions, name) =>
-    Position.List.contains(~find=position, positions) ? name : ".";
-
-  let makeCell = (position, positions) =>
-    (
-      if (Position.eq(position, head)) {
-        "H";
-      } else if (Position.List.contains(~find=position, middle)) {
-        middle
-        |> List.mapWithIndex((p, i) => (p, i))
-        |> List.keep(((p, _i)) => Position.eq(p, position))
-        |> List.map(((_p, i)) => i + 1)
-        |> List.Int.min
-        |> Shared.Option.getOrFailWith("makeCell failure")
-        |> Int.toString;
-      } else {
-        "T";
-      }
-    )
-    |> makeCell(position, positions);
+  let makeCell = position =>
+    if (Position.eq(position, Position.fromTuple((0, 0)))) {
+      "s";
+    } else if (Position.eq(position, head)) {
+      "H";
+    } else if (Position.List.contains(~find=position, middle)) {
+      middle
+      |> List.mapWithIndex((p, i) => (p, i))
+      |> List.keep(((p, _i)) => Position.eq(p, position))
+      |> List.map(((_p, i)) => i + 1)
+      |> List.Int.min
+      |> Shared.Option.getOrFailWith("makeCell failure")
+      |> Int.toString;
+    } else if (Position.eq(position, tail)) {
+      "T";
+    } else {
+      ".";
+    };
+  // |> makeCell(position, positions);
 
   let grid =
-    Int.rangeAsList(0, gridY + 1)
+    Int.rangeAsList(-10, 10)
     |> List.map(y =>
-         Int.rangeAsList(0, gridX + 1)
-         |> List.map(x => makeCell(Position.fromTuple((x, y)), positions))
+         Int.rangeAsList(-10, 10)
+         |> List.map(x => makeCell(Position.fromTuple((x, y))))
          |> List.String.join
        )
     |> List.reverse
@@ -259,16 +258,24 @@ let applyMoveIncrement =
       (move: move, {x: startX, y: startY}: Position.t): (move, Position.t) =>
     switch (move) {
     | Up(y) =>
-      Js.log({j|Move: Up $y|j});
+      if (Option.isSome(debug)) {
+        Js.log({j|Move: Up $y|j});
+      };
       (Up(y - 1), {x: startX, y: startY + 1});
     | Down(y) =>
-      Js.log({j|Move: Down $y|j});
+      if (Option.isSome(debug)) {
+        Js.log({j|Move: Down $y|j});
+      };
       (Down(y - 1), {x: startX, y: startY - 1});
     | Left(x) =>
-      Js.log({j|Move: Left $x|j});
+      if (Option.isSome(debug)) {
+        Js.log({j|Move: Left $x|j});
+      };
       (Left(x - 1), {x: startX - 1, y: startY});
     | Right(x) =>
-      Js.log({j|Move: Right $x|j});
+      if (Option.isSome(debug)) {
+        Js.log({j|Move: Right $x|j});
+      };
       (Right(x - 1), {x: startX + 1, y: startY});
     };
 
@@ -332,6 +339,8 @@ let rec applyMove = ((positionInfo, move), debug) => {
     debug
       ? Js.log(newPositionInfo |> showPositionInfo(~description="after"))
       : ();
+
+    makeGrid(newPositionInfo) |> Js.log;
 
     applyMove((newPositionInfo, newMove), debug);
   };
@@ -408,7 +417,7 @@ let parseMoves =
 let run = (part, debug: bool, data) =>
   data |> parseMoves |> part(debug) |> Int.toString;
 
-let doPart1 = run(part1, true);
+let doPart1 = run(part1, false);
 
 let doPart2 = run(part2, false);
 
