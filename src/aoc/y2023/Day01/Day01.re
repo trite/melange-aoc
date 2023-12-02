@@ -1,13 +1,13 @@
 let isNumber =
   fun
-  | "1" => true
-  | "2" => true
-  | "3" => true
-  | "4" => true
-  | "5" => true
-  | "6" => true
-  | "7" => true
-  | "8" => true
+  | "1"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
   | "9" => true
   | _ => false;
 
@@ -18,21 +18,24 @@ let doPart1 =
          line
          |> String.toList
          |> List.find(isNumber)
-         |> Shared.Option.getOrFailWith("No number found");
+         |> Result.fromOption("Part 1 - failed to find first number");
 
        let last =
          line
          |> String.toList
          |> List.reverse
          |> List.find(isNumber)
-         |> Shared.Option.getOrFailWith("No number found");
+         |> Result.fromOption("Part 1 - failed to find first number");
 
-       {j|$first$last|j}
-       |> Int.fromString
-       |> Shared.Option.getOrFailWith("Could not parse number");
+       Result.map2((f, l) => {j|$f$l|j}, first, last)
+       |> Result.flatMap(
+            Int.fromString
+            >> Result.fromOption("Part 1 - failed to parse number"),
+          );
      })
-  >> List.Int.sum
-  >> Int.toString;
+  >> List.Result.sequence
+  >> Result.map(List.Int.sum)
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 type findResult =
   | Success(int, list(string))
@@ -85,19 +88,22 @@ let doPart2 =
        let first =
          numbers
          |> List.head
-         |> Shared.Option.getOrFailWith("Failed to find first");
+         |> Result.fromOption("Part 2 - failed to find first number");
 
        let last =
          numbers
          |> List.last
-         |> Shared.Option.getOrFailWith("Failed to find second");
+         |> Result.fromOption("Part 2 - failed to find last number");
 
-       {j|$first$last|j}
-       |> Int.fromString
-       |> Shared.Option.getOrFailWith("Could not parse number");
+       Result.map2((f, l) => {j|$f$l|j}, first, last)
+       |> Result.flatMap(
+            Int.fromString
+            >> Result.fromOption("Part 2 - failed to parse number"),
+          );
      })
-  >> List.Int.sum
-  >> Int.toString;
+  >> List.Result.sequence
+  >> Result.map(List.Int.sum)
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 let p1TestInput = Day01Data.p1TestInput;
 
