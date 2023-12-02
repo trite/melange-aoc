@@ -132,6 +132,8 @@ let doPart1 = run(part1);
 
 let doPart2 = run(part2);
 
-let testInput = Day08Data.testInput;
+let p1TestInput = Day08Data.testInput;
+
+let p2TestInput = Day08Data.testInput;
 
 let actualInput = Day08Data.actualInput;

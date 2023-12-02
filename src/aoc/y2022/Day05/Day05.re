@@ -126,6 +126,8 @@ let doPart1 = doWork(applyMovesPart1);
 
 let doPart2 = doWork(applyMovesPart2);
 
-let testInput = Day05Data.testInput;
+let p1TestInput = Day05Data.testInput;
+
+let p2TestInput = Day05Data.testInput;
 
 let actualInput = Day05Data.actualInput;

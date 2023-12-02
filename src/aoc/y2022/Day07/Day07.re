@@ -248,6 +248,8 @@ let doPart1 = doWork(part1);
 
 let doPart2 = doWork(part2);
 
-let testInput = Day07Data.testInput;
+let p1TestInput = Day07Data.testInput;
+
+let p2TestInput = Day07Data.testInput;
 
 let actualInput = Day07Data.actualInput;
