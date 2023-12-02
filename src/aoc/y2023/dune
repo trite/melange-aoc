@@ -1,0 +1,9 @@
+(include_subdirs qualified)
+
+(library
+ (name y2023)
+ (modes melange)
+ (libraries reason-react melange.belt relude shared)
+ (preprocess
+  (pps melange.ppx reason-react-ppx))
+ (melange.compile_flags -open Relude.Globals))

@@ -1,4 +1,4 @@
 (library
  (name aoc)
  (modes melange)
- (libraries y2022 shared))
+ (libraries y2022 y2023 shared))
