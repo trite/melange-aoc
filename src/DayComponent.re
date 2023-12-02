@@ -14,13 +14,6 @@ type action =
   | SetPart2TestInput(string)
   | SetActualInput(string);
 
-let reducer = (state: state, action: action): state =>
-  switch (action) {
-  | SetPart1TestInput(input) => {...state, part1TestInput: input}
-  | SetPart2TestInput(input) => {...state, part2TestInput: input}
-  | SetActualInput(input) => {...state, actualInput: input}
-  };
-
 [@react.component]
 let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
   let (module Day) = dayInfo;
@@ -34,6 +27,26 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
     part1ActualResult: Day.actualInput |> Day.doPart1,
     part2ActualResult: Day.actualInput |> Day.doPart2,
   };
+
+  let reducer = (state: state, action: action): state =>
+    switch (action) {
+    | SetPart1TestInput(input) => {
+        ...state,
+        part1TestInput: input,
+        part1TestResult: input |> Day.doPart1,
+      }
+    | SetPart2TestInput(input) => {
+        ...state,
+        part2TestInput: input,
+        part2TestResult: input |> Day.doPart2,
+      }
+    | SetActualInput(input) => {
+        ...state,
+        actualInput: input,
+        part1ActualResult: input |> Day.doPart1,
+        part2ActualResult: input |> Day.doPart2,
+      }
+    };
 
   let (state, dispatch) = React.useReducer(reducer, initialState);
 
