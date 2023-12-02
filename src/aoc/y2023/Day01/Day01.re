@@ -48,24 +48,28 @@ type findResult =
 // This is the reason for the strange re-adding of letters to "rest" lists below
 let findNumber =
   fun
-  | ["1", ...rest]
+  // For numeric digits just return the digit and the rest of the list
+  | ["1", ...rest] => Success(1, rest)
+  | ["2", ...rest] => Success(2, rest)
+  | ["3", ...rest] => Success(3, rest)
+  | ["4", ...rest] => Success(4, rest)
+  | ["5", ...rest] => Success(5, rest)
+  | ["6", ...rest] => Success(6, rest)
+  | ["7", ...rest] => Success(7, rest)
+  | ["8", ...rest] => Success(8, rest)
+  | ["9", ...rest] => Success(9, rest)
+
+  // For words, re-cons the last letter in cases where it might matter for the next word
   | ["o", "n", "e", ...rest] => Success(1, ["e", ...rest])
-  | ["2", ...rest]
   | ["t", "w", "o", ...rest] => Success(2, ["o", ...rest])
-  | ["3", ...rest]
   | ["t", "h", "r", "e", "e", ...rest] => Success(3, ["e", ...rest])
-  | ["4", ...rest]
   | ["f", "o", "u", "r", ...rest] => Success(4, rest)
-  | ["5", ...rest]
   | ["f", "i", "v", "e", ...rest] => Success(5, ["e", ...rest])
-  | ["6", ...rest]
   | ["s", "i", "x", ...rest] => Success(6, rest)
-  | ["7", ...rest]
   | ["s", "e", "v", "e", "n", ...rest] => Success(7, ["n", ...rest])
-  | ["8", ...rest]
   | ["e", "i", "g", "h", "t", ...rest] => Success(8, ["t", ...rest])
-  | ["9", ...rest]
   | ["n", "i", "n", "e", ...rest] => Success(9, ["e", ...rest])
+
   | [_, ...rest] => Failure(rest)
   | [] => End;
 
