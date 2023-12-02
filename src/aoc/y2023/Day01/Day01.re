@@ -33,8 +33,6 @@ let doPart1 =
      })
   >> List.Int.sum
   >> Int.toString;
-// >> Js.Json.stringifyAny
-// >> Option.getOrThrow;
 
 type findResult =
   | Success(int, list(string))
