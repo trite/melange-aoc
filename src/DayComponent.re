@@ -159,42 +159,48 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
           />
         </Box>
       </Column>
-      <Column extra="is-one-quarter">
+      <Column extra="is-half">
         <Box>
           <H1 title="Test Results" />
-          <br />
-          <H2 title="Part 1" />
-          <Textarea
-            value={state.part1TestResult}
-            action=Textarea.ReadOnly
-            dispatch
-          />
-          <br />
-          <H2 title="Part 2" />
-          <Textarea
-            value={state.part2TestResult}
-            action=Textarea.ReadOnly
-            dispatch
-          />
+          <Columns>
+            <Column>
+              <H2 title="Part 1" />
+              <Textarea
+                value={state.part1TestResult}
+                action=Textarea.ReadOnly
+                dispatch
+              />
+            </Column>
+            <Column>
+              <H2 title="Part 2" />
+              <Textarea
+                value={state.part2TestResult}
+                action=Textarea.ReadOnly
+                dispatch
+              />
+            </Column>
+          </Columns>
         </Box>
-      </Column>
-      <Column extra="is-one-quarter">
         <Box>
           <H1 title="Actual Results" />
-          <br />
-          <H2 title="Part 1" />
-          <Textarea
-            value={state.part1ActualResult}
-            action=Textarea.ReadOnly
-            dispatch
-          />
-          <br />
-          <H2 title="Part 2" />
-          <Textarea
-            value={state.part2ActualResult}
-            action=Textarea.ReadOnly
-            dispatch
-          />
+          <Columns>
+            <Column>
+              <H2 title="Part 1" />
+              <Textarea
+                value={state.part1ActualResult}
+                action=Textarea.ReadOnly
+                dispatch
+              />
+            </Column>
+            <Column>
+              <H2 title="Part 2" />
+              <Textarea
+                value={state.part2ActualResult}
+                action=Textarea.ReadOnly
+                dispatch
+              />
+            </Column>
+          </Columns>
         </Box>
       </Column>
     </Columns>
