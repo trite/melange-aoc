@@ -1,47 +1,41 @@
-module P = {
-  [@react.component]
-  let make = (~children) => <div> {children |> React.string} </div>;
+type state = {
+  part1TestInput: string,
+  part2TestInput: string,
+  actualInput: string,
+  part1TestResult: string,
+  part2TestResult: string,
+  part1ActualResult: string,
+  part2ActualResult: string,
 };
+
+[@deriving accessors]
+type action =
+  | SetPart1TestInput(string)
+  | SetPart2TestInput(string)
+  | SetActualInput(string);
+
+let reducer = (state: state, action: action): state =>
+  switch (action) {
+  | SetPart1TestInput(input) => {...state, part1TestInput: input}
+  | SetPart2TestInput(input) => {...state, part2TestInput: input}
+  | SetActualInput(input) => {...state, actualInput: input}
+  };
 
 [@react.component]
 let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
   let (module Day) = dayInfo;
 
-  let (part1TestInput, setPart1TestInput) =
-    React.useState(() => Day.p1TestInput);
-
-  let (part2TestInput, setPart2TestInput) =
-    React.useState(() => Day.p2TestInput);
-
-  let (actualInput, setActualInput) = React.useState(() => Day.actualInput);
-
-  let (part1TestResult, setPart1TestResult) =
-    React.useState(() => Day.p1TestInput |> Day.doPart1);
-
-  let (part2TestResult, setPart2TestResult) =
-    React.useState(() => Day.p2TestInput |> Day.doPart2);
-
-  let (part1ActualResult, setPart1ActualResult) =
-    React.useState(() => Day.actualInput |> Day.doPart1);
-
-  let (part2ActualResult, setPart2ActualResult) =
-    React.useState(() => Day.actualInput |> Day.doPart2);
-
-  let setPart1TestInput = input => {
-    setPart1TestInput(_ => input);
-    setPart1TestResult(_ => input |> Day.doPart1);
+  let initialState = {
+    part1TestInput: Day.p1TestInput,
+    part2TestInput: Day.p2TestInput,
+    actualInput: Day.actualInput,
+    part1TestResult: Day.p1TestInput |> Day.doPart1,
+    part2TestResult: Day.p2TestInput |> Day.doPart2,
+    part1ActualResult: Day.actualInput |> Day.doPart1,
+    part2ActualResult: Day.actualInput |> Day.doPart2,
   };
 
-  let setPart2TestInput = input => {
-    setPart2TestInput(_ => input);
-    setPart2TestResult(_ => input |> Day.doPart2);
-  };
-
-  let setActualInput = input => {
-    setActualInput(_ => input);
-    setPart1ActualResult(_ => input |> Day.doPart1);
-    setPart2ActualResult(_ => input |> Day.doPart2);
-  };
+  let (state, dispatch) = React.useReducer(reducer, initialState);
 
   <div className="container mt-6 is-centered">
     <div className="columns is-centered">
@@ -59,32 +53,30 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
               <h1 className="title"> {"Input data" |> React.string} </h1>
             </div>
           </div>
-          // <textarea
-          //   className="textarea"
-          //   rows=20
-          //   value=input
-          //   onChange={e => setInput(ReactEvent.Form.target(e)##value)}
-          // />
           <br />
           <div className="columns">
             <div className="column">
-              <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
+              <h2 className="subtitle"> {"Test - Part 1" |> React.string} </h2>
               <textarea
                 className="textarea"
-                value=part1TestInput
+                value={state.part1TestInput}
                 onChange={e =>
-                  setPart1TestInput(ReactEvent.Form.target(e)##value)
+                  ReactEvent.Form.target(e)##value
+                  |> setPart1TestInput
+                  |> dispatch
                 }
               />
             </div>
             <br />
             <div className="column">
-              <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
+              <h2 className="subtitle"> {"Test - Part 2" |> React.string} </h2>
               <textarea
                 className="textarea"
-                value=part2TestInput
+                value={state.part2TestInput}
                 onChange={e =>
-                  setPart2TestInput(ReactEvent.Form.target(e)##value)
+                  ReactEvent.Form.target(e)##value
+                  |> setPart2TestInput
+                  |> dispatch
                 }
               />
             </div>
@@ -92,8 +84,11 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
           <h2 className="subtitle"> {"Actual" |> React.string} </h2>
           <textarea
             className="textarea"
-            value=actualInput
-            onChange={e => setActualInput(ReactEvent.Form.target(e)##value)}
+            rows=10
+            value={state.actualInput}
+            onChange={e =>
+              ReactEvent.Form.target(e)##value |> setActualInput |> dispatch
+            }
           />
         </div>
       </div>
@@ -102,10 +97,18 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
           <h1 className="title"> {"Test Results" |> React.string} </h1>
           <br />
           <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
-          <textarea className="textarea" value=part1TestResult readOnly=true />
+          <textarea
+            className="textarea"
+            value={state.part1TestResult}
+            readOnly=true
+          />
           <br />
           <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
-          <textarea className="textarea" value=part2TestResult readOnly=true />
+          <textarea
+            className="textarea"
+            value={state.part2TestResult}
+            readOnly=true
+          />
         </div>
       </div>
       <div className="column is-one-quarter">
@@ -115,14 +118,14 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
           <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
           <textarea
             className="textarea"
-            value=part1ActualResult
+            value={state.part1ActualResult}
             readOnly=true
           />
           <br />
           <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
           <textarea
             className="textarea"
-            value=part2ActualResult
+            value={state.part2ActualResult}
             readOnly=true
           />
         </div>
