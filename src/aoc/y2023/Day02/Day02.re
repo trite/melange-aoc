@@ -94,7 +94,56 @@ let doPart1 =
   >> Result.map(List.catOptions >> List.Int.sum)
   >> Result.fold(err => err, x => x |> Int.toString);
 
-let doPart2 = _ => "Not yet implemented";
+type p2Round = {
+  blue: int,
+  green: int,
+  red: int,
+};
+
+// This assumes no rounds have more than 1 count for the same color in a list
+// A list of [Blue(1), Blue(3)] would be treated as just Blue(3)
+let makeP2Round = (round: round) => {
+  let updateP2Round = (p2Round, colorCount) =>
+    switch (colorCount) {
+    | Blue(blue) => {...p2Round, blue}
+    | Green(green) => {...p2Round, green}
+    | Red(red) => {...p2Round, red}
+    };
+
+  round
+  |> List.foldLeft(
+       (p2Round, colorCount) => updateP2Round(p2Round, colorCount),
+       {blue: 0, green: 0, red: 0},
+     );
+};
+
+let getMaxValues = (rounds: list(p2Round)) =>
+  rounds
+  |> List.foldLeft(
+       (acc, curr) => {
+         {
+           blue: Int.max(acc.blue, curr.blue),
+           green: Int.max(acc.green, curr.green),
+           red: Int.max(acc.red, curr.red),
+         }
+       },
+       {blue: 0, green: 0, red: 0},
+     );
+
+let doPart2 =
+  String.splitList(~delimiter="\n")
+  >> List.map(
+       parseLine
+       >> Result.map(({gameInfo, _}: game) =>
+            gameInfo
+            |> List.map(makeP2Round)
+            |> getMaxValues
+            |> (x => x.blue * x.green * x.red)
+          ),
+     )
+  >> List.Result.sequence
+  >> Result.map(List.Int.sum)
+  >> Result.fold(err => err, x => x |> Int.toString);
 
 let p1TestInput = Day02Data.testInput;
 
