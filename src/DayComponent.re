@@ -14,6 +14,75 @@ type action =
   | SetPart2TestInput(string)
   | SetActualInput(string);
 
+module H1 = {
+  [@react.component]
+  let make = (~title: string) => {
+    <h1 className="title"> {title |> React.string} </h1>;
+  };
+};
+
+module H2 = {
+  [@react.component]
+  let make = (~title: string) => {
+    <h2 className="subtitle"> {title |> React.string} </h2>;
+  };
+};
+
+module Column = {
+  [@react.component]
+  let make = (~children, ~extra=?) => {
+    let className =
+      switch (extra) {
+      | None => "column"
+      | Some(extra) => "column " ++ extra
+      };
+
+    <div className> children </div>;
+  };
+};
+
+module Columns = {
+  [@react.component]
+  let make = (~children, ~extra=?) => {
+    let className =
+      switch (extra) {
+      | None => "columns"
+      | Some(extra) => "columns " ++ extra
+      };
+
+    <div className> children </div>;
+  };
+};
+
+module Box = {
+  [@react.component]
+  let make = (~children) => {
+    <div className="box"> children </div>;
+  };
+};
+
+module Textarea = {
+  type textAreaAction =
+    | OnChange(string => action)
+    | ReadOnly;
+
+  [@react.component]
+  let make = (~value, ~action, ~dispatch, ~rows=?) => {
+    switch (action) {
+    | OnChange(toApply) =>
+      <textarea
+        className="textarea"
+        ?rows
+        value
+        onChange={e =>
+          ReactEvent.Form.target(e)##value |> toApply |> dispatch
+        }
+      />
+    | ReadOnly => <textarea className="textarea" ?rows value readOnly=true />
+    };
+  };
+};
+
 [@react.component]
 let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
   let (module Day) = dayInfo;
@@ -51,98 +120,83 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
   let (state, dispatch) = React.useReducer(reducer, initialState);
 
   <div className="container mt-6 is-centered">
-    <div className="columns is-centered">
-      <div className="column is-three-quarters">
+    <Columns extra="is-centered">
+      <Column extra="is-three-quarters">
         <a href="#" onClick={_ => ReasonReactRouter.push("/")}>
           {"<- Home" |> React.string}
         </a>
-      </div>
-    </div>
-    <div className="columns is-centered">
-      <div className="column is-half">
-        <div className="box">
-          <div className="columns">
-            <div className="column">
-              <h1 className="title"> {"Input data" |> React.string} </h1>
-            </div>
-          </div>
+      </Column>
+    </Columns>
+    <Columns extra="is-centered">
+      <Column extra="is-half">
+        <Box>
+          <Columns> <Column> <H1 title="Input Data" /> </Column> </Columns>
           <br />
-          <div className="columns">
-            <div className="column">
-              <h2 className="subtitle"> {"Test - Part 1" |> React.string} </h2>
-              <textarea
-                className="textarea"
+          <Columns>
+            <Column>
+              <H2 title="Test - Part 1" />
+              <Textarea
                 value={state.part1TestInput}
-                onChange={e =>
-                  ReactEvent.Form.target(e)##value
-                  |> setPart1TestInput
-                  |> dispatch
-                }
+                action={Textarea.OnChange(setPart1TestInput)}
+                dispatch
               />
-            </div>
+            </Column>
             <br />
-            <div className="column">
-              <h2 className="subtitle"> {"Test - Part 2" |> React.string} </h2>
-              <textarea
-                className="textarea"
+            <Column>
+              <H2 title="Test - Part 2" />
+              <Textarea
                 value={state.part2TestInput}
-                onChange={e =>
-                  ReactEvent.Form.target(e)##value
-                  |> setPart2TestInput
-                  |> dispatch
-                }
+                action={Textarea.OnChange(setPart2TestInput)}
+                dispatch
               />
-            </div>
-          </div>
-          <h2 className="subtitle"> {"Actual" |> React.string} </h2>
-          <textarea
-            className="textarea"
-            rows=10
+            </Column>
+          </Columns>
+          <H2 title="Actual" />
+          <Textarea
             value={state.actualInput}
-            onChange={e =>
-              ReactEvent.Form.target(e)##value |> setActualInput |> dispatch
-            }
+            action={Textarea.OnChange(setActualInput)}
+            dispatch
           />
-        </div>
-      </div>
-      <div className="column is-one-quarter">
-        <div className="box">
-          <h1 className="title"> {"Test Results" |> React.string} </h1>
+        </Box>
+      </Column>
+      <Column extra="is-one-quarter">
+        <Box>
+          <H1 title="Test Results" />
           <br />
-          <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
-          <textarea
-            className="textarea"
+          <H2 title="Part 1" />
+          <Textarea
             value={state.part1TestResult}
-            readOnly=true
+            action=Textarea.ReadOnly
+            dispatch
           />
           <br />
-          <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
-          <textarea
-            className="textarea"
+          <H2 title="Part 2" />
+          <Textarea
             value={state.part2TestResult}
-            readOnly=true
+            action=Textarea.ReadOnly
+            dispatch
           />
-        </div>
-      </div>
-      <div className="column is-one-quarter">
-        <div className="box">
-          <h1 className="title"> {"Actual Results" |> React.string} </h1>
+        </Box>
+      </Column>
+      <Column extra="is-one-quarter">
+        <Box>
+          <H1 title="Actual Results" />
           <br />
-          <h2 className="subtitle"> {"Part 1" |> React.string} </h2>
-          <textarea
-            className="textarea"
+          <H2 title="Part 1" />
+          <Textarea
             value={state.part1ActualResult}
-            readOnly=true
+            action=Textarea.ReadOnly
+            dispatch
           />
           <br />
-          <h2 className="subtitle"> {"Part 2" |> React.string} </h2>
-          <textarea
-            className="textarea"
+          <H2 title="Part 2" />
+          <Textarea
             value={state.part2ActualResult}
-            readOnly=true
+            action=Textarea.ReadOnly
+            dispatch
           />
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Column>
+    </Columns>
   </div>;
 };
