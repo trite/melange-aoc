@@ -11,7 +11,13 @@ type game = {
   gameInfo: list(round),
 };
 
-let parseLine = line => {
+let parseMapInt = (name, toMap, i) =>
+  i
+  |> Int.fromString
+  |> Result.fromOption("Failed to parse " ++ name ++ " count")
+  |> Result.map(toMap);
+
+let parseLine = line =>
   // Split game number from game info
   (
     switch (line |> String.splitList(~delimiter=": ")) {
@@ -39,21 +45,9 @@ let parseLine = line => {
             String.splitList(~delimiter=", ", gameRaw)
             |> List.map(gamePartRaw =>
                  switch (gamePartRaw |> String.splitList(~delimiter=" ")) {
-                 | [x, "blue"] =>
-                   x
-                   |> Int.fromString
-                   |> Result.fromOption("Failed to parse blue count")
-                   |> Result.map(blue)
-                 | [x, "green"] =>
-                   x
-                   |> Int.fromString
-                   |> Result.fromOption("Failed to parse green count")
-                   |> Result.map(green)
-                 | [x, "red"] =>
-                   x
-                   |> Int.fromString
-                   |> Result.fromOption("Failed to parse red count")
-                   |> Result.map(red)
+                 | [x, "blue"] => x |> parseMapInt("blue", blue)
+                 | [x, "green"] => x |> parseMapInt("green", green)
+                 | [x, "red"] => x |> parseMapInt("red", red)
                  | _ => Error("Failed to parse game part")
                  }
                )
@@ -62,14 +56,13 @@ let parseLine = line => {
        |> List.Result.sequence
        |> Result.map(gameInfo => {gameNumber, gameInfo})
      });
-};
 
 let maxRed = 12;
 let maxGreen = 13;
 let maxBlue = 14;
 
-let isGamePossible = game => {
-  game.gameInfo
+let isGamePossible = ({gameNumber, gameInfo}) =>
+  gameInfo
   |> List.map(round =>
        round
        |> List.map(colorCount =>
@@ -90,10 +83,9 @@ let isGamePossible = game => {
   |> List.length
   |> (
     fun
-    | 0 => Some(game.gameNumber)
+    | 0 => Some(gameNumber)
     | _ => None
   );
-};
 
 let doPart1 =
   String.splitList(~delimiter="\n")
