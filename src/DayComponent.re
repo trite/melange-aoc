@@ -130,11 +130,10 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
     <Columns extra="is-centered">
       <Column extra="is-half">
         <Box>
-          <Columns> <Column> <H1 title="Input Data" /> </Column> </Columns>
-          <br />
+          <H1 title="Test Input" />
           <Columns>
             <Column>
-              <H2 title="Test - Part 1" />
+              <H2 title="Part 1" />
               <Textarea
                 value={state.part1TestInput}
                 action={Textarea.OnChange(setPart1TestInput)}
@@ -143,7 +142,7 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
             </Column>
             <br />
             <Column>
-              <H2 title="Test - Part 2" />
+              <H2 title="Part 2" />
               <Textarea
                 value={state.part2TestInput}
                 action={Textarea.OnChange(setPart2TestInput)}
@@ -151,8 +150,11 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
               />
             </Column>
           </Columns>
-          <H2 title="Actual" />
+        </Box>
+        <Box>
+          <H1 title="Actual Input" />
           <Textarea
+            rows=12
             value={state.actualInput}
             action={Textarea.OnChange(setActualInput)}
             dispatch
