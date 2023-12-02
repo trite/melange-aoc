@@ -25,7 +25,7 @@ let doPart1 =
          |> String.toList
          |> List.reverse
          |> List.find(isNumber)
-         |> Result.fromOption("Part 1 - failed to find first number");
+         |> Result.fromOption("Part 1 - failed to find last number");
 
        Result.map2((f, l) => {j|$f$l|j}, first, last)
        |> Result.flatMap(
