@@ -92,7 +92,7 @@ let doPart1 =
   >> List.map(parseLine >> Result.map(isGamePossible))
   >> List.Result.sequence
   >> Result.map(List.catOptions >> List.Int.sum)
-  >> Result.fold(err => err, x => x |> Int.toString);
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 type p2Round = {
   blue: int,
@@ -143,7 +143,7 @@ let doPart2 =
      )
   >> List.Result.sequence
   >> Result.map(List.Int.sum)
-  >> Result.fold(err => err, x => x |> Int.toString);
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 let p1TestInput = Day02Data.testInput;
 
