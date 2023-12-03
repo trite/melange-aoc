@@ -68,22 +68,222 @@ let getRange =
        range(xStart, xEnd + 1) |> List.map(x => get({x, y}, grid))
      );
 
-let doPart1 =
-  parseToGrid
-  >> getRange({
-       start_: {
-         x: 2,
-         y: 2,
-       },
-       end_: {
-         x: 3,
-         y: 2,
-       },
-     })
-  >> List.map(List.toArray)
-  >> List.toArray
-  >> Js.Json.stringifyAny
-  >> Option.getOrThrow;
+// let findNumbers = (grid: grid) =>
+//   // : list(coordRange) =>
+//   grid
+//   |> IntMap.toList
+//   |> List.map((y, row) =>
+//        row
+//        |> IntMap.toList
+//        |> List.filter((x, char) => char >= "0" && char <= "9")
+//        |> List.map((x, _) => {x, y})
+//        |> List.fold()
+//      );
+
+type findingNumber =
+  | FindingEnd(int)
+  | FindingStart;
+
+let (^::) = List.cons;
+
+let findNumbers = (row: list(string)) => {
+  let rec go =
+          (
+            acc: list((int, int)),
+            finding: findingNumber,
+            position: int,
+            rest: list(string),
+          ) =>
+    switch (rest) {
+    | [] =>
+      switch (finding) {
+      | FindingEnd(x) => (x, position - 1) ^:: acc
+      | FindingStart => acc
+      }
+    | [char, ...rest] =>
+      switch (finding) {
+      | FindingEnd(x) =>
+        if (char >= "0" && char <= "9") {
+          go(acc, FindingEnd(x), position + 1, rest);
+        } else {
+          go((x, position - 1) ^:: acc, FindingStart, position + 1, rest);
+        }
+      | FindingStart =>
+        if (char >= "0" && char <= "9") {
+          go(acc, FindingEnd(position), position + 1, rest);
+        } else {
+          go(acc, FindingStart, position + 1, rest);
+        }
+      }
+    };
+
+  go([], FindingStart, 0, row);
+};
+
+let getAround =
+    (
+      {start_: {x: xStart, y: yStart}, end_: {x: xEnd, y: yEnd}}: coordRange,
+      grid: grid,
+    ) =>
+  getRange(
+    {
+      start_: {
+        x: xStart - 1,
+        y: yStart - 1,
+      },
+      end_: {
+        x: xEnd + 1,
+        y: yEnd + 1,
+      },
+    },
+    grid,
+  );
+
+let isSymbol = (char: string) => (char < "0" || char > "9") && char != ".";
+
+assert("." |> isSymbol == false);
+assert("0" |> isSymbol == false);
+assert("5" |> isSymbol == false);
+assert("9" |> isSymbol == false);
+assert("*" |> isSymbol == true);
+assert("@" |> isSymbol == true);
+assert("=" |> isSymbol == true);
+
+// let isPartNumber = (coordRange: coordRange, grid: grid) =>
+//   grid
+//   |> getAround(coordRange)
+//   |> List.mapWithIndex((row, i) =>
+//        switch (i) {
+//        | 0
+//        | 2 =>
+//          row |> List.map(isSymbol) |> List.foldLeft((a, b) => a || b, false)
+//        | 1 =>
+//          row
+//          |> List.mapWithIndex((char, j) =>
+//               j === 0 || j === List.length(row) - 1 || isSymbol(char)
+//             )
+//          |> List.foldLeft((a, b) => a || b, false)
+//        | _ => raise(Failure("NYI"))
+//        }
+//      );
+
+let isPartNumber =
+  List.mapWithIndex((row, i) =>
+    switch (i) {
+    | 0
+    | 2 =>
+      row |> List.map(isSymbol) |> List.foldLeft((a, b) => a || b, false)
+    | 1 =>
+      row
+      |> List.mapWithIndex((char, j) =>
+           (j == 0 || j == List.length(row) - 1) && isSymbol(char)
+         )
+      |> List.foldLeft((a, b) => a || b, false)
+    | _ => raise(Failure("NYI"))
+    }
+  )
+  >> List.foldLeft((a, b) => a || b, false);
+
+assert(
+  [
+    [".", ".", ".", ".", "."],
+    [".", "1", "2", "3", "."],
+    [".", ".", ".", ".", "."],
+  ]
+  |> isPartNumber == false,
+);
+
+assert(
+  [
+    [".", ".", ".", "#", "."],
+    [".", "1", "2", "3", "."],
+    [".", ".", ".", ".", "."],
+  ]
+  |> isPartNumber == true,
+);
+
+assert(
+  [
+    [".", ".", ".", ".", "@"],
+    [".", "1", "2", "3", "."],
+    [".", ".", ".", ".", "."],
+  ]
+  |> isPartNumber == true,
+);
+
+let doPart1 = (input: string) => {
+  let grid = parseToGrid(input);
+
+  input
+  |> String.splitList(~delimiter="\n")
+  |> List.mapWithIndex((row, i) =>
+       row
+       |> String.toList
+       |> findNumbers
+       |> List.map(((start_, end_)) => {
+            let test =
+              getAround(
+                {
+                  start_: {
+                    x: start_,
+                    y: i,
+                  },
+                  end_: {
+                    x: end_,
+                    y: i,
+                  },
+                },
+                grid,
+              )
+              |> isPartNumber;
+
+            if (test) {
+              Some(
+                getRange(
+                  {
+                    start_: {
+                      x: start_,
+                      y: i,
+                    },
+                    end_: {
+                      x: end_,
+                      y: i,
+                    },
+                  },
+                  grid,
+                )
+                |> List.map(List.foldLeft((a, b) => a ++ b, ""))
+                |> List.foldLeft((a, b) => a ++ b, ""),
+              );
+            } else {
+              None;
+            };
+          })
+     )
+  // |> List.map(List.map(List.toArray))
+  |> List.map(List.toArray)
+  |> List.toArray
+  |> Js.Json.stringifyAny
+  |> Option.getOrThrow;
+  // >> List.map(List.toArray)
+  // >> List.toArray
+  // >> Js.Json.stringifyAny
+  // >> Option.getOrThrow;
+};
+// parseToGrid
+// >> getRange({
+//      start_: {
+//        x: 2,
+//        y: 2,
+//      },
+//      end_: {
+//        x: 3,
+//        y: 2,
+//      },
+//    })
+
+// let doPart1 = _ =>
+//   "," |> isSymbol |> Js.Json.stringifyAny |> Option.getOrThrow;
 
 let doPart2 = id;
 
