@@ -121,22 +121,23 @@ assert("*" |> isSymbol == true);
 assert("@" |> isSymbol == true);
 assert("=" |> isSymbol == true);
 
+let containsTrue = List.foldLeft((a, b) => a || b, false);
+
 let isPartNumber =
   List.mapWithIndex((row, i) =>
     switch (i) {
     | 0
-    | 2 =>
-      row |> List.map(isSymbol) |> List.foldLeft((a, b) => a || b, false)
+    | 2 => row |> List.map(isSymbol) |> containsTrue
     | 1 =>
       row
       |> List.mapWithIndex((char, j) =>
            (j == 0 || j == List.length(row) - 1) && isSymbol(char)
          )
-      |> List.foldLeft((a, b) => a || b, false)
+      |> containsTrue
     | _ => raise(Failure("NYI"))
     }
   )
-  >> List.foldLeft((a, b) => a || b, false);
+  >> containsTrue;
 
 assert(
   [
@@ -189,8 +190,8 @@ let doPart1 = (input: string) => {
             if (getAround(coordRange, grid) |> isPartNumber) {
               Some(
                 getRange(coordRange, grid)
-                |> List.map(List.foldLeft((a, b) => a ++ b, ""))
-                |> List.foldLeft((a, b) => a ++ b, ""),
+                |> List.map(List.String.join)
+                |> List.String.join,
               );
             } else {
               None;
