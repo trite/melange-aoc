@@ -1,19 +1,3 @@
-/*
-    TODO:
-      * Get list of all number groups as coord ranges, ex:
-        "467" = 0,0 through 2,0
-        "114" = 5,0 through 7,0
-        "35"  = 2,2 through 3,2
-
-      * Get range surrounding any of these coord ranges, ex:
-        "467" = -1,-1 through 3,1
-        "114" = 4,-1 through 8,1
-        "35"  = 1,1 through 4,3
-
-      * Look at entire top and bottom row of ranges, and first/last char on middle row
-        All ranges should be 3 rows tall, and 2 characters wider than the number range
- */
-
 module IntMap = {
   include Map.WithOrd(Int.Ord);
 };
@@ -67,18 +51,6 @@ let getRange =
   |> List.map(y =>
        range(xStart, xEnd + 1) |> List.map(x => get({x, y}, grid))
      );
-
-// let findNumbers = (grid: grid) =>
-//   // : list(coordRange) =>
-//   grid
-//   |> IntMap.toList
-//   |> List.map((y, row) =>
-//        row
-//        |> IntMap.toList
-//        |> List.filter((x, char) => char >= "0" && char <= "9")
-//        |> List.map((x, _) => {x, y})
-//        |> List.fold()
-//      );
 
 type findingNumber =
   | FindingEnd(int)
@@ -149,24 +121,6 @@ assert("*" |> isSymbol == true);
 assert("@" |> isSymbol == true);
 assert("=" |> isSymbol == true);
 
-// let isPartNumber = (coordRange: coordRange, grid: grid) =>
-//   grid
-//   |> getAround(coordRange)
-//   |> List.mapWithIndex((row, i) =>
-//        switch (i) {
-//        | 0
-//        | 2 =>
-//          row |> List.map(isSymbol) |> List.foldLeft((a, b) => a || b, false)
-//        | 1 =>
-//          row
-//          |> List.mapWithIndex((char, j) =>
-//               j === 0 || j === List.length(row) - 1 || isSymbol(char)
-//             )
-//          |> List.foldLeft((a, b) => a || b, false)
-//        | _ => raise(Failure("NYI"))
-//        }
-//      );
-
 let isPartNumber =
   List.mapWithIndex((row, i) =>
     switch (i) {
@@ -221,37 +175,20 @@ let doPart1 = (input: string) => {
        |> String.toList
        |> findNumbers
        |> List.map(((start_, end_)) => {
-            let test =
-              getAround(
-                {
-                  start_: {
-                    x: start_,
-                    y: i,
-                  },
-                  end_: {
-                    x: end_,
-                    y: i,
-                  },
-                },
-                grid,
-              )
-              |> isPartNumber;
+            let coordRange = {
+              start_: {
+                x: start_,
+                y: i,
+              },
+              end_: {
+                x: end_,
+                y: i,
+              },
+            };
 
-            if (test) {
+            if (getAround(coordRange, grid) |> isPartNumber) {
               Some(
-                getRange(
-                  {
-                    start_: {
-                      x: start_,
-                      y: i,
-                    },
-                    end_: {
-                      x: end_,
-                      y: i,
-                    },
-                  },
-                  grid,
-                )
+                getRange(coordRange, grid)
                 |> List.map(List.foldLeft((a, b) => a ++ b, ""))
                 |> List.foldLeft((a, b) => a ++ b, ""),
               );
@@ -259,31 +196,23 @@ let doPart1 = (input: string) => {
               None;
             };
           })
+       |> List.catOptions
+       |> List.map(x =>
+            x |> Int.fromString |> Result.fromOption("Could not parse int")
+          )
+       |> List.foldLeft(
+            (acc, curr) =>
+              switch (acc, curr) {
+              | (Ok(curr), Ok(acc)) => Ok(acc + curr)
+              | (_, Error(err))
+              | (Error(err), _) => Error(err)
+              },
+            Ok(0),
+          )
      )
-  // |> List.map(List.map(List.toArray))
-  |> List.map(List.toArray)
-  |> List.toArray
-  |> Js.Json.stringifyAny
-  |> Option.getOrThrow;
-  // >> List.map(List.toArray)
-  // >> List.toArray
-  // >> Js.Json.stringifyAny
-  // >> Option.getOrThrow;
+  |> List.Result.sequence
+  |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
 };
-// parseToGrid
-// >> getRange({
-//      start_: {
-//        x: 2,
-//        y: 2,
-//      },
-//      end_: {
-//        x: 3,
-//        y: 2,
-//      },
-//    })
-
-// let doPart1 = _ =>
-//   "," |> isSymbol |> Js.Json.stringifyAny |> Option.getOrThrow;
 
 let doPart2 = id;
 
