@@ -200,15 +200,8 @@ let doPart1 = (input: string) => {
        |> List.map(x =>
             x |> Int.fromString |> Result.fromOption("Could not parse int")
           )
-       |> List.foldLeft(
-            (acc, curr) =>
-              switch (acc, curr) {
-              | (Ok(curr), Ok(acc)) => Ok(acc + curr)
-              | (_, Error(err))
-              | (Error(err), _) => Error(err)
-              },
-            Ok(0),
-          )
+       |> List.Result.sequence
+       |> Result.map(List.foldLeft((a, b) => a + b, 0))
      )
   |> List.Result.sequence
   |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
@@ -218,6 +211,6 @@ let doPart2 = id;
 
 let p1TestInput = Day03Data.testInput;
 
-let p2TestInput = "";
+let p2TestInput = Day03Data.testInput;
 
 let actualInput = Day03Data.actualInput;
