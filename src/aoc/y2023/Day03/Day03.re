@@ -208,7 +208,137 @@ let doPart1 = (input: string) => {
   |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
 };
 
-let doPart2 = id;
+let findStars = (input: list(list(string))) =>
+  input
+  |> List.mapWithIndex((row, y) =>
+       row
+       |> List.mapWithIndex((char, x) =>
+            if (char == "*") {
+              Some({x, y});
+            } else {
+              None;
+            }
+          )
+       |> List.catOptions
+     )
+  |> List.foldLeft(List.concat, []);
+
+type numberWithCoordRange = {
+  number: int,
+  range: coordRange,
+};
+
+type findingNumberWithCoordRange =
+  | Building(int, string)
+  | Searching;
+
+let makeNumberWithCoordRange = (str: string, range: coordRange) =>
+  str
+  |> Int.fromString
+  |> Result.fromOption("Failed to parse int")
+  |> Result.map(number => {number, range});
+
+let findNumbersWithCoordRange = (row: list(string), rowNumber: int) => {
+  let rec go =
+          (
+            acc: list(result(numberWithCoordRange, string)),
+            finding: findingNumberWithCoordRange,
+            position: int,
+            rest: list(string),
+          ) =>
+    switch (rest) {
+    | [] =>
+      switch (finding) {
+      | Building(xStart, str) =>
+        makeNumberWithCoordRange(
+          str,
+          {
+            start_: {
+              x: xStart,
+              y: rowNumber,
+            },
+            end_: {
+              x: position - 1,
+              y: rowNumber,
+            },
+          },
+        )
+        ^:: acc
+      | Searching => acc
+      }
+    | [char, ...rest] =>
+      switch (finding) {
+      | Building(xStart, str) =>
+        if (char >= "0" && char <= "9") {
+          go(acc, Building(xStart, str ++ char), position + 1, rest);
+        } else {
+          go(
+            makeNumberWithCoordRange(
+              str,
+              {
+                start_: {
+                  x: xStart,
+                  y: rowNumber,
+                },
+                end_: {
+                  x: position - 1,
+                  y: rowNumber,
+                },
+              },
+            )
+            ^:: acc,
+            Searching,
+            position + 1,
+            rest,
+          );
+        }
+      | Searching =>
+        if (char >= "0" && char <= "9") {
+          go(acc, Building(position, char), position + 1, rest);
+        } else {
+          go(acc, Searching, position + 1, rest);
+        }
+      }
+    };
+
+  go([], Searching, 0, row);
+};
+
+let findNumbersWithCoordRanges = (input: list(list(string))) =>
+  input
+  |> List.mapWithIndex((row, i) => findNumbersWithCoordRange(row, i))
+  |> List.foldLeft(List.concat, []);
+
+let nearRange =
+    (
+      {x, y}: coord,
+      {start_: {x: xStart, y: yStart}, end_: {x: xEnd, y: yEnd}}: coordRange,
+    ) =>
+  x >= xStart - 1 && x <= xEnd + 1 && y >= yStart - 1 && y <= yEnd + 1;
+
+let doPart2 = (input: string) => {
+  let lsts =
+    input |> String.splitList(~delimiter="\n") |> List.map(String.toList);
+
+  let numbers = lsts |> findNumbersWithCoordRanges |> List.Result.sequence;
+
+  lsts
+  |> findStars
+  |> List.map(star =>
+       numbers
+       |> Result.map(
+            List.filter(({range, _}) => nearRange(star, range))
+            >> List.map(({number, _}) => number)
+            >> (
+              fun
+              | [x, y] => x * y
+              | _ => 0
+            ),
+          )
+     )
+  |> List.Result.sequence
+  |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
+};
 
 let p1TestInput = Day03Data.testInput;
 
