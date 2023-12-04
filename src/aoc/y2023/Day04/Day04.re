@@ -1,8 +1,9 @@
+module IntMap = {
+  include Map.WithOrd(Int.Ord);
+};
+
 type card = {
-  // Id isn't used in part 1, but will be in part 2, ignoring warning for now
-  // Can either use an attribute or prefix id with _ to do this, I prefer the latter
-  // [@ocaml.warning "-69"]
-  _id: int,
+  id: int,
   winningNumbers: list(int),
   cardNumbers: list(int),
 };
@@ -48,7 +49,7 @@ let parseCard = (cardString: string): result(card, string) => {
   |> Result.flatMap(((id, winningNumbers, cardNumbersRaw)) => {
        cardNumbersRaw
        |> parseNumbers("Failed to parse card numbers")
-       |> Result.map(cardNumbers => {_id: id, winningNumbers, cardNumbers})
+       |> Result.map(cardNumbers => {id, winningNumbers, cardNumbers})
      });
 };
 
@@ -83,7 +84,129 @@ let doPart1 =
   >> List.Result.sequence
   >> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
 
-let doPart2 = id;
+type cardTotals = {
+  cardValue: int,
+  cardTotal: int,
+};
+
+let updateCounts =
+    (
+      gameMap: IntMap.t(cardTotals),
+      startFrom: int,
+      stopAt: int,
+      increaseBy: int,
+    ) => {
+  let rec go =
+          (acc: IntMap.t(cardTotals), curr: int, stop: int, amount: int)
+          : IntMap.t(cardTotals) =>
+    if (curr == stop) {
+      acc;
+    } else {
+      let {cardValue, cardTotal} =
+        acc
+        |> IntMap.get(curr)
+        |> Shared.Option.getOrFailWith("Failed to get card");
+
+      Js.log(
+        {j|curr: $curr, stop: $stop, amount: $amount, cardValue: $cardValue, cardTotal: $cardTotal|j},
+      );
+
+      go(
+        acc
+        |> IntMap.update(
+             curr,
+             Option.map(({cardValue, cardTotal}) =>
+               {cardValue, cardTotal: cardTotal + amount}
+             ),
+           ),
+        curr + 1,
+        stop,
+        amount,
+      );
+    };
+
+  go(gameMap, startFrom, stopAt, increaseBy);
+};
+
+let countTotal = (gameMap: IntMap.t(cardTotals)): result(int, string) => {
+  let rec go =
+          (acc: result(IntMap.t(cardTotals), string), curr: int, stop: int)
+          : result(IntMap.t(cardTotals), string) =>
+    if (curr > stop) {
+      acc;
+    } else {
+      let {cardValue, cardTotal} =
+        acc
+        |> Result.getOk
+        |> Option.getOrThrow
+        |> IntMap.get(curr)
+        |> Shared.Option.getOrFailWith("Failed to get card");
+
+      let newMap: result(IntMap.t(cardTotals), string) =
+        acc
+        |> Result.map(gameMap =>
+             updateCounts(gameMap, curr + 1, curr + cardValue + 1, cardTotal)
+           );
+
+      if (curr + 1 <= stop) {
+        let {cardValue, cardTotal} =
+          newMap
+          |> Result.getOk
+          |> Option.getOrThrow
+          |> IntMap.get(curr)
+          |> Shared.Option.getOrFailWith("Failed to get card");
+
+        Js.log(
+          {j|curr: $curr, cardValue: $cardValue, cardTotal: $cardTotal|j},
+        );
+      };
+
+      go(newMap, curr + 1, stop);
+    };
+
+  let stop = gameMap |> IntMap.length;
+
+  go(Ok(gameMap), 1, stop)
+  |> Result.map(
+       IntMap.toList
+       >> List.map(((_id, {cardTotal, _}: cardTotals)) => cardTotal)
+       >> List.Int.sum,
+     );
+};
+
+// Verify test data gets the right answer
+assert(
+  [
+    (1, {cardValue: 4, cardTotal: 1}),
+    (2, {cardValue: 2, cardTotal: 1}),
+    (3, {cardValue: 2, cardTotal: 1}),
+    (4, {cardValue: 1, cardTotal: 1}),
+    (5, {cardValue: 0, cardTotal: 1}),
+    (6, {cardValue: 0, cardTotal: 1}),
+  ]
+  |> IntMap.fromList
+  |> countTotal
+  |> Result.getOk
+  |> Option.getOrThrow == 30,
+);
+
+let doPart2 =
+  removeExtraSpaces
+  >> String.splitList(~delimiter="\n")
+  >> List.map(
+       parseCard
+       >> Result.map(({id, winningNumbers, cardNumbers}: card) =>
+            winningNumbers
+            |> List.filter(winningNumber =>
+                 doesCardContainWinningNumber(winningNumber, cardNumbers)
+               )
+            |> List.length
+            |> (x => (id, {cardValue: x, cardTotal: 1}))
+          ),
+     )
+  >> List.Result.sequence
+  >> Result.flatMap(IntMap.fromList >> countTotal)
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 let p1TestInput = Day04Data.testInput;
 
