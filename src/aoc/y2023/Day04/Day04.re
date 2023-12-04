@@ -102,15 +102,6 @@ let updateCounts =
     if (curr == stop) {
       acc;
     } else {
-      let {cardValue, cardTotal} =
-        acc
-        |> IntMap.get(curr)
-        |> Shared.Option.getOrFailWith("Failed to get card");
-
-      Js.log(
-        {j|curr: $curr, stop: $stop, amount: $amount, cardValue: $cardValue, cardTotal: $cardTotal|j},
-      );
-
       go(
         acc
         |> IntMap.update(
@@ -135,33 +126,25 @@ let countTotal = (gameMap: IntMap.t(cardTotals)): result(int, string) => {
     if (curr > stop) {
       acc;
     } else {
-      let {cardValue, cardTotal} =
-        acc
-        |> Result.getOk
-        |> Option.getOrThrow
-        |> IntMap.get(curr)
-        |> Shared.Option.getOrFailWith("Failed to get card");
-
-      let newMap: result(IntMap.t(cardTotals), string) =
-        acc
-        |> Result.map(gameMap =>
-             updateCounts(gameMap, curr + 1, curr + cardValue + 1, cardTotal)
-           );
-
-      if (curr + 1 <= stop) {
-        let {cardValue, cardTotal} =
-          newMap
-          |> Result.getOk
-          |> Option.getOrThrow
-          |> IntMap.get(curr)
-          |> Shared.Option.getOrFailWith("Failed to get card");
-
-        Js.log(
-          {j|curr: $curr, cardValue: $cardValue, cardTotal: $cardTotal|j},
-        );
-      };
-
-      go(newMap, curr + 1, stop);
+      acc
+      |> Result.flatMap(
+           IntMap.get(curr) >> Result.fromOption("Failed to get card"),
+         )
+      |> Result.flatMap(({cardValue, cardTotal}) => {
+           go(
+             acc
+             |> Result.map(gameMap =>
+                  updateCounts(
+                    gameMap,
+                    curr + 1,
+                    curr + cardValue + 1,
+                    cardTotal,
+                  )
+                ),
+             curr + 1,
+             stop,
+           )
+         });
     };
 
   let stop = gameMap |> IntMap.length;
@@ -174,7 +157,7 @@ let countTotal = (gameMap: IntMap.t(cardTotals)): result(int, string) => {
      );
 };
 
-// Verify test data gets the right answer
+// Verify test data gets the right answer when using countTotal
 assert(
   [
     (1, {cardValue: 4, cardTotal: 1}),
@@ -187,7 +170,8 @@ assert(
   |> IntMap.fromList
   |> countTotal
   |> Result.getOk
-  |> Option.getOrThrow == 30,
+  |> Shared.Option.getOrFailWith("Assertion failure - couldn't get result")
+  == 30,
 );
 
 let doPart2 =
