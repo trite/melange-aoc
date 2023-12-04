@@ -60,8 +60,8 @@ let doesCardContainWinningNumber =
 let calculatePoints = (listLength: int) =>
   switch (listLength) {
   | 0 => 0
-  | _ =>
-    listLength
+  | x =>
+    x
     - 1
     |> List.repeat(_, 2)
     |> List.foldLeft((acc, curr) => acc * curr, 1)
@@ -123,7 +123,7 @@ let countTotal = (gameMap: IntMap.t(cardTotals)): result(int, string) => {
   let rec go =
           (acc: result(IntMap.t(cardTotals), string), curr: int, stop: int)
           : result(IntMap.t(cardTotals), string) =>
-    if (curr > stop) {
+    if (curr == stop) {
       acc;
     } else {
       acc
