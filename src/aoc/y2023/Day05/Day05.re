@@ -6,9 +6,10 @@ type map = {
   range: float,
 };
 
+type seeds = list(float);
+
 // Seeds should be moved out of the almanac, but I want to figure the rest out before refactoring
 type almanac = {
-  seeds: list(float),
   seedToSoil: list(map),
   soilToFertilizer: list(map),
   fertilizerToWater: list(map),
@@ -18,75 +19,30 @@ type almanac = {
   humidityToLocation: list(map),
 };
 
-// Probably going to remove these types later
-//   using them to make errors from compiler easier to follow for now
-type parsingSeeds =
-  (
-    ~seeds: list(float),
-    ~seedToSoil: list(map),
-    ~soilToFertilizer: list(map),
-    ~fertilizerToWater: list(map),
-    ~waterToLight: list(map),
-    ~lightToTemperature: list(map),
-    ~temperatureToHumidity: list(map),
-    ~humidityToLocation: list(map),
-    unit
-  ) =>
-  almanac;
+let makeAlmanac =
+    (
+      seedToSoil,
+      soilToFertilizer,
+      fertilizerToWater,
+      waterToLight,
+      lightToTemperature,
+      temperatureToHumidity,
+      humidityToLocation,
+    ) => {
+  seedToSoil,
+  soilToFertilizer,
+  fertilizerToWater,
+  waterToLight,
+  lightToTemperature,
+  temperatureToHumidity,
+  humidityToLocation,
+};
 
-type parsingSeedToSoil =
-  (
-    ~seedToSoil: list(map),
-    ~soilToFertilizer: list(map),
-    ~fertilizerToWater: list(map),
-    ~waterToLight: list(map),
-    ~lightToTemperature: list(map),
-    ~temperatureToHumidity: list(map),
-    ~humidityToLocation: list(map),
-    unit
-  ) =>
-  almanac;
-
-let makeAlmanac: parsingSeeds =
-  (
-    ~seeds,
-    ~seedToSoil,
-    ~soilToFertilizer,
-    ~fertilizerToWater,
-    ~waterToLight,
-    ~lightToTemperature,
-    ~temperatureToHumidity,
-    ~humidityToLocation,
-    (),
-  ) => {
-    seeds,
-    seedToSoil,
-    soilToFertilizer,
-    fertilizerToWater,
-    waterToLight,
-    lightToTemperature,
-    temperatureToHumidity,
-    humidityToLocation,
-  };
-
-// TODO: remove warnings
-[@ocaml.warning "-34-37-69"]
-type parsingState =
-  | Seeds
-  | SeedToSoil
-  | SoilToFertilizer
-  | FertilizerToWater
-  | WaterToLight
-  | LightToTemperature
-  | TemperatureToHumidity
-  | HumidityToLocation;
-
-let parseAlmanac = (input: string): result(almanac, string) => {
+let parseAlmanac = (input: string): result((seeds, almanac), string) => {
   let parseSeeds =
-      (acc: parsingSeeds, state: parsingState, lines: list(string))
-      : result((parsingSeedToSoil, parsingState, list(string)), string) => {
-    switch (state, lines) {
-    | (Seeds, [line, "", ...rest]) =>
+      (lines: list(string)): result((seeds, list(string)), string) => {
+    switch (lines) {
+    | [line, "", ...rest] =>
       switch (line |> String.splitList(~delimiter=" ")) {
       | ["seeds:", ...seedsRaw] =>
         seedsRaw
@@ -99,7 +55,7 @@ let parseAlmanac = (input: string): result(almanac, string) => {
                 )
            )
         |> List.Result.sequence
-        |> Result.map(seeds => (acc(~seeds), SeedToSoil, rest))
+        |> Result.map(seeds => (seeds, rest))
       | _ => Error("Failed to parse seeds line")
       }
     | _ => Error("Failed during parsing phase: Seeds")
@@ -162,50 +118,30 @@ let parseAlmanac = (input: string): result(almanac, string) => {
     };
   };
 
+  let apply = (title: string, last: bool) =>
+    Result.flatMap(((seeds, builder, rest)) =>
+      parseMap(title, last, rest)
+      |> Result.map(((soilToFertilizer, rest)) =>
+           (seeds, builder(soilToFertilizer), rest)
+         )
+    );
+
   input
   |> String.splitList(~delimiter="\n")
-  |> parseSeeds(makeAlmanac, Seeds)
-  |> Result.flatMap(((builder, _state, rest)) =>
+  |> parseSeeds
+  |> Result.flatMap(((seeds, rest)) =>
        parseMap("seed-to-soil", false, rest)
-       |> Result.map(((seedToSoil, rest)) => (builder(~seedToSoil), rest))
-     )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("soil-to-fertilizer", false, rest)
-       |> Result.map(((soilToFertilizer, rest)) =>
-            (builder(~soilToFertilizer), rest)
+       |> Result.map(((seedToSoil, rest)) =>
+            (seeds, makeAlmanac(seedToSoil), rest)
           )
      )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("fertilizer-to-water", false, rest)
-       |> Result.map(((fertilizerToWater, rest)) =>
-            (builder(~fertilizerToWater), rest)
-          )
-     )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("water-to-light", false, rest)
-       |> Result.map(((waterToLight, rest)) =>
-            (builder(~waterToLight), rest)
-          )
-     )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("light-to-temperature", false, rest)
-       |> Result.map(((lightToTemperature, rest)) =>
-            (builder(~lightToTemperature), rest)
-          )
-     )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("temperature-to-humidity", false, rest)
-       |> Result.map(((temperatureToHumidity, rest)) =>
-            (builder(~temperatureToHumidity), rest)
-          )
-     )
-  |> Result.flatMap(((builder, rest)) =>
-       parseMap("humidity-to-location", true, rest)
-       |> Result.map(((humidityToLocation, rest)) =>
-            (builder(~humidityToLocation), rest)
-          )
-     )
-  |> Result.map(((builder, _rest)) => builder());
+  |> apply("soil-to-fertilizer", false)
+  |> apply("fertilizer-to-water", false)
+  |> apply("water-to-light", false)
+  |> apply("light-to-temperature", false)
+  |> apply("temperature-to-humidity", false)
+  |> apply("humidity-to-location", true)
+  |> Result.map(((seeds, builder, _rest)) => (seeds, builder));
 };
 
 let mapSeed = (almanac: almanac, seed: float) => {
@@ -221,7 +157,8 @@ let mapSeed = (almanac: almanac, seed: float) => {
     };
   };
 
-  runMaps(almanac.seedToSoil, seed)
+  seed
+  |> runMaps(almanac.seedToSoil)
   |> runMaps(almanac.soilToFertilizer)
   |> runMaps(almanac.fertilizerToWater)
   |> runMaps(almanac.waterToLight)
@@ -232,15 +169,15 @@ let mapSeed = (almanac: almanac, seed: float) => {
 
 let doPart1 =
   parseAlmanac
-  >> Result.map(almanac =>
-       almanac.seeds |> List.map(mapSeed(almanac)) |> List.Float.min
+  >> Result.map(((seeds: seeds, almanac: almanac)) =>
+       seeds |> List.map(mapSeed(almanac)) |> List.Float.min
      )
   >> Result.fold(
        err => "Error: " ++ err,
        Js.Json.stringifyAny >> Option.getOrThrow,
      );
 
-let doPart2 = id;
+let doPart2 = _ => "Not yet implemented";
 
 let p1TestInput = Day05Data.testInput;
 
