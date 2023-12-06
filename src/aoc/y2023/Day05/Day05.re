@@ -38,30 +38,31 @@ let makeAlmanac =
   humidityToLocation,
 };
 
-let parseAlmanac = (input: string): result((seeds, almanac), string) => {
-  let parseSeeds =
-      (lines: list(string)): result((seeds, list(string)), string) => {
-    switch (lines) {
-    | [line, "", ...rest] =>
-      switch (line |> String.splitList(~delimiter=" ")) {
-      | ["seeds:", ...seedsRaw] =>
-        seedsRaw
-        |> List.map(seedRaw =>
-             seedRaw
-             |> Float.fromString
-             |> Result.fromOption(
-                  "Failed to parse seed: "
-                  ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
-                )
-           )
-        |> List.Result.sequence
-        |> Result.map(seeds => (seeds, rest))
-      | _ => Error("Failed to parse seeds line")
-      }
-    | _ => Error("Failed during parsing phase: Seeds")
-    };
+let p1ParseSeeds =
+    (lines: list(string)): result((seeds, list(string)), string) => {
+  switch (lines) {
+  | [line, "", ...rest] =>
+    switch (line |> String.splitList(~delimiter=" ")) {
+    | ["seeds:", ...seedsRaw] =>
+      seedsRaw
+      |> List.map(seedRaw =>
+           seedRaw
+           |> Float.fromString
+           |> Result.fromOption(
+                "Failed to parse seed: "
+                ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
+              )
+         )
+      |> List.Result.sequence
+      |> Result.map(seeds => (seeds, rest))
+    | _ => Error("Failed to parse seeds line")
+    }
+  | _ => Error("Failed during parsing phase: Seeds")
   };
+};
 
+let parseAlmanac =
+    (parseSeeds, input: string): result((seeds, almanac), string) => {
   let parseMap = (mapTitle: string, last: bool, lines: list(string)) => {
     let verifyTitleLine = (mapTitle: string, line: string) => {
       switch (line |> String.splitList(~delimiter=" ")) {
@@ -167,8 +168,8 @@ let mapSeed = (almanac: almanac, seed: float) => {
   |> runMaps(almanac.humidityToLocation);
 };
 
-let doPart1 =
-  parseAlmanac
+let doWork = seedParser =>
+  parseAlmanac(seedParser)
   >> Result.map(((seeds: seeds, almanac: almanac)) =>
        seeds |> List.map(mapSeed(almanac)) |> List.Float.min
      )
@@ -177,10 +178,70 @@ let doPart1 =
        Js.Json.stringifyAny >> Option.getOrThrow,
      );
 
-let doPart2 = _ => "Not yet implemented";
+let doPart1 = doWork(p1ParseSeeds);
+
+let rec addValues = (curr: float, remaining: float, acc: list(float)) =>
+  if (remaining <= 0.) {
+    acc;
+  } else {
+    // addValues(start_ +. 1., end_, [start_, ...acc]);
+    addValues(
+      curr +. 1.,
+      remaining -. 1.,
+      [curr, ...acc],
+    );
+  };
+
+let p2ParseSeeds =
+    (lines: list(string)): result((seeds, list(string)), string) => {
+  let getRanges = (seeds: seeds): result(seeds, string) => {
+    let rec go = (acc: list(float), rest) =>
+      // switch (rest |> List.take(2)) {
+      // | [] => Ok(acc)
+      // | [x, y] =>
+      //   go(rangeFloat(x, y) |> List.concat(acc), rest |> List.drop(2))
+      // // TODO: Resultify this
+      // // | _ => raise(Failure("Should have an even number of seed values!"))
+      // | _ => Error("Should have an even number of seed values!")
+      // };
+      switch (rest) {
+      | [] => Ok(acc)
+      // | [x, y, ...rest] => go(rangeFloat(x, y) |> List.concat(acc), rest)
+      | [x, y, ...rest] => go(addValues(x, y, acc), rest)
+      // TODO: Resultify this
+      // | _ => raise(Failure("Should have an even number of seed values!"))
+      | _ => Error("Should have an even number of seed values!")
+      };
+
+    go([], seeds);
+  };
+
+  switch (lines) {
+  | [line, "", ...rest] =>
+    switch (line |> String.splitList(~delimiter=" ")) {
+    | ["seeds:", ...seedsRaw] =>
+      seedsRaw
+      |> List.map(seedRaw =>
+           seedRaw
+           |> Float.fromString
+           |> Result.fromOption(
+                "Failed to parse seed: "
+                ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
+              )
+         )
+      |> List.Result.sequence
+      |> Result.flatMap(getRanges)
+      |> Result.map(seeds => (seeds, rest))
+    | _ => Error("Failed to parse seeds line")
+    }
+  | _ => Error("Failed during parsing phase: Seeds")
+  };
+};
+
+let doPart2 = doWork(p2ParseSeeds);
 
 let p1TestInput = Day05Data.testInput;
 
 let p2TestInput = "Not there yet";
 
-let actualInput = Day05Data.actualInput;
+let actualInput = Day05Data.testInput;
