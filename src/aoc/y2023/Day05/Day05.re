@@ -8,7 +8,6 @@ type map = {
 
 type seeds = list(float);
 
-// Seeds should be moved out of the almanac, but I want to figure the rest out before refactoring
 type almanac = {
   seedToSoil: list(map),
   soilToFertilizer: list(map),
@@ -38,31 +37,30 @@ let makeAlmanac =
   humidityToLocation,
 };
 
-let p1ParseSeeds =
-    (lines: list(string)): result((seeds, list(string)), string) => {
-  switch (lines) {
-  | [line, "", ...rest] =>
-    switch (line |> String.splitList(~delimiter=" ")) {
-    | ["seeds:", ...seedsRaw] =>
-      seedsRaw
-      |> List.map(seedRaw =>
-           seedRaw
-           |> Float.fromString
-           |> Result.fromOption(
-                "Failed to parse seed: "
-                ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
-              )
-         )
-      |> List.Result.sequence
-      |> Result.map(seeds => (seeds, rest))
-    | _ => Error("Failed to parse seeds line")
-    }
-  | _ => Error("Failed during parsing phase: Seeds")
+let parseAlmanac = (input: string): result((seeds, almanac), string) => {
+  let parseSeeds =
+      (lines: list(string)): result((seeds, list(string)), string) => {
+    switch (lines) {
+    | [line, "", ...rest] =>
+      switch (line |> String.splitList(~delimiter=" ")) {
+      | ["seeds:", ...seedsRaw] =>
+        seedsRaw
+        |> List.map(seedRaw =>
+             seedRaw
+             |> Float.fromString
+             |> Result.fromOption(
+                  "Failed to parse seed: "
+                  ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
+                )
+           )
+        |> List.Result.sequence
+        |> Result.map(seeds => (seeds, rest))
+      | _ => Error("Failed to parse seeds line")
+      }
+    | _ => Error("Failed during parsing phase: Seeds")
+    };
   };
-};
 
-let parseAlmanac =
-    (parseSeeds, input: string): result((seeds, almanac), string) => {
   let parseMap = (mapTitle: string, last: bool, lines: list(string)) => {
     let verifyTitleLine = (mapTitle: string, line: string) => {
       switch (line |> String.splitList(~delimiter=" ")) {
@@ -168,8 +166,8 @@ let mapSeed = (almanac: almanac, seed: float) => {
   |> runMaps(almanac.humidityToLocation);
 };
 
-let doWork = seedParser =>
-  parseAlmanac(seedParser)
+let doPart1 =
+  parseAlmanac
   >> Result.map(((seeds: seeds, almanac: almanac)) =>
        seeds |> List.map(mapSeed(almanac)) |> List.Float.min
      )
@@ -178,70 +176,59 @@ let doWork = seedParser =>
        Js.Json.stringifyAny >> Option.getOrThrow,
      );
 
-let doPart1 = doWork(p1ParseSeeds);
+// The FP methods I'm familiar with for this cause memory or stack overflows
+// So going for the imperative approach
+let mapRangeAndFindMin = (startingSeed: float, range: float, almanac: almanac) => {
+  let i = ref(startingSeed);
+  let result = ref(0.);
 
-let rec addValues = (curr: float, remaining: float, acc: list(float)) =>
-  if (remaining <= 0.) {
-    acc;
-  } else {
-    // addValues(start_ +. 1., end_, [start_, ...acc]);
-    addValues(
-      curr +. 1.,
-      remaining -. 1.,
-      [curr, ...acc],
-    );
+  while (i^ < startingSeed +. range) {
+    i := i^ +. 1.;
+
+    result := Float.min(result^, mapSeed(almanac, i^));
   };
 
-let p2ParseSeeds =
-    (lines: list(string)): result((seeds, list(string)), string) => {
-  let getRanges = (seeds: seeds): result(seeds, string) => {
-    let rec go = (acc: list(float), rest) =>
-      // switch (rest |> List.take(2)) {
-      // | [] => Ok(acc)
-      // | [x, y] =>
-      //   go(rangeFloat(x, y) |> List.concat(acc), rest |> List.drop(2))
-      // // TODO: Resultify this
-      // // | _ => raise(Failure("Should have an even number of seed values!"))
-      // | _ => Error("Should have an even number of seed values!")
-      // };
-      switch (rest) {
-      | [] => Ok(acc)
-      // | [x, y, ...rest] => go(rangeFloat(x, y) |> List.concat(acc), rest)
-      | [x, y, ...rest] => go(addValues(x, y, acc), rest)
-      // TODO: Resultify this
-      // | _ => raise(Failure("Should have an even number of seed values!"))
-      | _ => Error("Should have an even number of seed values!")
-      };
-
-    go([], seeds);
-  };
-
-  switch (lines) {
-  | [line, "", ...rest] =>
-    switch (line |> String.splitList(~delimiter=" ")) {
-    | ["seeds:", ...seedsRaw] =>
-      seedsRaw
-      |> List.map(seedRaw =>
-           seedRaw
-           |> Float.fromString
-           |> Result.fromOption(
-                "Failed to parse seed: "
-                ++ (seedRaw |> Js.Json.stringifyAny |> Option.getOrThrow),
-              )
-         )
-      |> List.Result.sequence
-      |> Result.flatMap(getRanges)
-      |> Result.map(seeds => (seeds, rest))
-    | _ => Error("Failed to parse seeds line")
-    }
-  | _ => Error("Failed during parsing phase: Seeds")
-  };
+  result^;
 };
 
-let doPart2 = doWork(p2ParseSeeds);
+let mapSeedsAndFindMin = (seeds: seeds, almanac: almanac) => {
+  let rec go = (minResult: float, rest) => {
+    switch (rest) {
+    | [] => Ok(minResult)
+    | [startingSeed, range, ...rest] =>
+      mapRangeAndFindMin(startingSeed, range, almanac)
+      |> Float.min(minResult)
+      |> go(_, rest)
+    | _ => Error("Should have an even number of seed values!")
+    };
+  };
+
+  go(0., seeds);
+};
+
+// This solution would eventually work, but it will scan through
+//   so many values it could take days, weeks, or longer to finish
+
+// TODO: figure out how I want to go about this
+//   Perhaps try to make sure I'm only testing seeds that fall in valid map ranges
+
+// ALTERNATELY:
+//   Maybe figure out which humidityToLocation values will produce the smallest results
+//   Then find which temperatureToHumidity values can produce values in those ranges
+//   This continue walking backwards till I reach seedToSoil
+//   Then find the smallest seed value in the resulting ranges
+let doPart2 =
+  parseAlmanac
+  >> Result.map(((seeds: seeds, almanac: almanac)) =>
+       mapSeedsAndFindMin(seeds, almanac)
+     )
+  >> Result.fold(
+       err => "Error: " ++ err,
+       Js.Json.stringifyAny >> Option.getOrThrow,
+     );
 
 let p1TestInput = Day05Data.testInput;
 
-let p2TestInput = "Not there yet";
+let p2TestInput = Day05Data.testInput;
 
-let actualInput = Day05Data.testInput;
+let actualInput = Day05Data.actualInput;
