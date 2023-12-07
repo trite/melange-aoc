@@ -1,6 +1,6 @@
 // Using floats instead of ints because some values are greater than 32 bit int max
 // Could use Int64, but switching to float is easier for now
-type map = {
+type p1Map = {
   to_: float,
   from: float,
   range: float,
@@ -8,14 +8,14 @@ type map = {
 
 type seeds = list(float);
 
-type almanac = {
-  seedToSoil: list(map),
-  soilToFertilizer: list(map),
-  fertilizerToWater: list(map),
-  waterToLight: list(map),
-  lightToTemperature: list(map),
-  temperatureToHumidity: list(map),
-  humidityToLocation: list(map),
+type almanac('a) = {
+  seedToSoil: list('a),
+  soilToFertilizer: list('a),
+  fertilizerToWater: list('a),
+  waterToLight: list('a),
+  lightToTemperature: list('a),
+  temperatureToHumidity: list('a),
+  humidityToLocation: list('a),
 };
 
 let makeAlmanac =
@@ -37,7 +37,7 @@ let makeAlmanac =
   humidityToLocation,
 };
 
-let parseAlmanac = (input: string): result((seeds, almanac), string) => {
+let p1Parse = (input: string): result((seeds, almanac(p1Map)), string) => {
   let parseSeeds =
       (lines: list(string)): result((seeds, list(string)), string) => {
     switch (lines) {
@@ -75,7 +75,7 @@ let parseAlmanac = (input: string): result((seeds, almanac), string) => {
       };
     };
 
-    let rec go = (acc: list(map), last: bool, lines: list(string)) => {
+    let rec go = (acc: list(p1Map), last: bool, lines: list(string)) => {
       switch (lines) {
       | [] when last => Ok((acc, []))
       | [] when !last => Error("Reached end of parsing too early")
@@ -143,8 +143,8 @@ let parseAlmanac = (input: string): result((seeds, almanac), string) => {
   |> Result.map(((seeds, builder, _rest)) => (seeds, builder));
 };
 
-let mapSeed = (almanac: almanac, seed: float) => {
-  let rec runMaps = (mapping: list(map), seed: float) => {
+let mapSeed = (almanac: almanac(p1Map), seed: float) => {
+  let rec runMaps = (mapping: list(p1Map), seed: float) => {
     switch (mapping) {
     | [] => seed
     | [{from, to_, range}, ...rest] =>
@@ -167,44 +167,45 @@ let mapSeed = (almanac: almanac, seed: float) => {
 };
 
 let doPart1 =
-  parseAlmanac
-  >> Result.map(((seeds: seeds, almanac: almanac)) =>
-       seeds |> List.map(mapSeed(almanac)) |> List.Float.min
+  p1Parse
+  >> Result.flatMap(((seeds: seeds, almanac: almanac(p1Map))) =>
+       seeds
+       |> List.map(mapSeed(almanac))
+       |> List.Float.min
+       |> Result.fromOption("Failed to find min seed value")
      )
-  >> Result.fold(
-       err => "Error: " ++ err,
-       Js.Json.stringifyAny >> Option.getOrThrow,
-     );
+  >> Result.fold(err => "Error: " ++ err, Float.toString);
 
 // The FP methods I'm familiar with for this cause memory or stack overflows
 // So going for the imperative approach
-let mapRangeAndFindMin = (startingSeed: float, range: float, almanac: almanac) => {
-  let i = ref(startingSeed);
-  let result = ref(0.);
+// let _mapRangeAndFindMin =
+//     (startingSeed: float, range: float, almanac: almanac(p1Map)) => {
+//   let i = ref(startingSeed);
+//   let result = ref(0.);
 
-  while (i^ < startingSeed +. range) {
-    i := i^ +. 1.;
+//   while (i^ < startingSeed +. range) {
+//     i := i^ +. 1.;
 
-    result := Float.min(result^, mapSeed(almanac, i^));
-  };
+//     result := Float.min(result^, mapSeed(almanac, i^));
+//   };
 
-  result^;
-};
+//   result^;
+// };
 
-let mapSeedsAndFindMin = (seeds: seeds, almanac: almanac) => {
-  let rec go = (minResult: float, rest) => {
-    switch (rest) {
-    | [] => Ok(minResult)
-    | [startingSeed, range, ...rest] =>
-      mapRangeAndFindMin(startingSeed, range, almanac)
-      |> Float.min(minResult)
-      |> go(_, rest)
-    | _ => Error("Should have an even number of seed values!")
-    };
-  };
+// let _mapSeedsAndFindMin = (seeds: seeds, almanac: almanac(p1Map)) => {
+//   let rec go = (minResult: float, rest) => {
+//     switch (rest) {
+//     | [] => Ok(minResult)
+//     | [startingSeed, range, ...rest] =>
+//       _mapRangeAndFindMin(startingSeed, range, almanac)
+//       |> Float.min(minResult)
+//       |> go(_, rest)
+//     | _ => Error("Should have an even number of seed values!")
+//     };
+//   };
 
-  go(0., seeds);
-};
+//   go(0., seeds);
+// };
 
 // This solution would eventually work, but it will scan through
 //   so many values it could take days, weeks, or longer to finish
@@ -217,10 +218,211 @@ let mapSeedsAndFindMin = (seeds: seeds, almanac: almanac) => {
 //   Then find which temperatureToHumidity values can produce values in those ranges
 //   This continue walking backwards till I reach seedToSoil
 //   Then find the smallest seed value in the resulting ranges
+
+// Given the way this is about to deal with part 2, this layout is easier to reason about
+[@ocaml.warning "-69"]
+type p2Map = {
+  start_: float,
+  end_: float,
+  add: float,
+};
+
+[@ocaml.warning "-69"]
+type range = {
+  start_: float,
+  end_: float,
+};
+
+let p1MapToP2Map = (p1Map: p1Map): p2Map => {
+  let {to_, from, range} = p1Map;
+
+  {start_: from, end_: from +. range, add: to_ -. from};
+};
+
+let p1AlmanacToP2Almanac =
+    (
+      {
+        seedToSoil,
+        soilToFertilizer,
+        fertilizerToWater,
+        waterToLight,
+        lightToTemperature,
+        temperatureToHumidity,
+        humidityToLocation,
+      }:
+        almanac(p1Map),
+    )
+    : almanac(p2Map) => {
+  seedToSoil: List.map(p1MapToP2Map, seedToSoil),
+  soilToFertilizer: List.map(p1MapToP2Map, soilToFertilizer),
+  fertilizerToWater: List.map(p1MapToP2Map, fertilizerToWater),
+  waterToLight: List.map(p1MapToP2Map, waterToLight),
+  lightToTemperature: List.map(p1MapToP2Map, lightToTemperature),
+  temperatureToHumidity: List.map(p1MapToP2Map, temperatureToHumidity),
+  humidityToLocation: List.map(p1MapToP2Map, humidityToLocation),
+};
+
+// let _mapSeedsAndFindMin = (seeds: seeds, almanac: almanac(p1Map)) => {
+//   let rec go = (minResult: float, rest) => {
+//     switch (rest) {
+//     | [] => Ok(minResult)
+//     | [startingSeed, range, ...rest] =>
+//       _mapRangeAndFindMin(startingSeed, range, almanac)
+//       |> Float.min(minResult)
+//       |> go(_, rest)
+//     | _ => Error("Should have an even number of seed values!")
+//     };
+//   };
+
+//   go(0., seeds);
+// };
+
+[@ocaml.warning "-32"]
+let seedsToSeedRange = (seeds: seeds): result(list(range), string) => {
+  let rec go = (acc: list(range), rest) => {
+    switch (rest) {
+    | [] => Ok(acc)
+    | [start_, range, ...rest] =>
+      go([{start_, end_: start_ +. range}, ...acc], rest)
+    | _ => Error("Should have an even number of seed values!")
+    };
+  };
+
+  go([], seeds);
+};
+
+type seedConversionStatus =
+  | Converted(range)
+  | Unconverted(range);
+
+[@ocaml.warning "-27-32"]
+let checkSeedRange = (seedRange: range, map: p2Map) =>
+  if (seedRange.start_ >= map.start_
+      && seedRange.start_ <= map.end_
+      || seedRange.end_ >= map.start_
+      && seedRange.end_ <= map.end_) {
+    let resultStart = Float.max(seedRange.start_, map.start_);
+    let resultEnd = Float.min(seedRange.end_, map.end_);
+
+    let result = {start_: resultStart +. map.add, end_: resultEnd +. map.add};
+
+    // let leftoverBefore =
+    //   if (resultStart_ >= map.start_) {
+    //     Some({start_: map.start_, end_: resultStart_ -. 1.});
+    //   } else {
+    //     None;
+    //   };
+
+    // let leftoverAfter =
+    //   if (resultEnd_ <= map.end_) {
+    //     Some({start_: resultEnd_ +. 1., end_: map.end_});
+    //   } else {
+    //     None;
+    //   };
+
+    let leftoverBefore =
+      if (resultStart > seedRange.start_) {
+        Some({start_: seedRange.start_, end_: resultStart -. 1.});
+      } else {
+        None;
+      };
+
+    let leftoverAfter =
+      if (resultEnd < seedRange.end_) {
+        Some({start_: resultEnd +. 1., end_: seedRange.end_});
+      } else {
+        None;
+      };
+
+    let leftovers = [leftoverBefore, leftoverAfter] |> List.catOptions;
+
+    Some((result, leftovers));
+  } else {
+    None;
+  };
+
+let rec checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
+  let start_ = seed.start_;
+  let end_ = seed.end_;
+
+  Js.log({j|starting seed check, seed: {start_: $start_, end_: $end_}|j});
+
+  maps
+  |> List.map(map => checkSeedRange(seed, map))
+  |> List.catOptions
+  |> List.map(((result: range, leftovers)) => {
+       let {start_, end_} = result;
+
+       let printLeftovers =
+         leftovers |> List.toArray |> Js.Json.stringifyAny |> Option.getOrThrow;
+
+       Js.log(
+         {j|checking seed against maps, result: {start_: $start_, end_: $end_}, leftovers: $printLeftovers|j},
+       );
+
+       let leftoverResults =
+         leftovers
+         |> List.map(leftover => checkSeedAgainstMaps(leftover, maps))
+         |> List.foldLeft(List.concat, []);
+
+       [result, ...leftoverResults];
+     })
+  |> List.foldLeft(List.concat, []);
+};
+
+// let checkSeedRanges = (seedRanges: list(range), map: p2Map) =>
+//   seedRanges |> List.map(checkSeedRange(map)) |> List.catOptions;
+
+// let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
+//   let rec go = (acc: list(range), rest) => {
+//     switch (rest) {
+//     | [] => Ok(acc)
+//     | [map, ...rest] =>
+//       checkSeedRange(seed, map)
+//       |> Option.map(((result, leftovers)) =>
+//            go(
+//              [{start_: result.start_, end_: result.end_}, ...acc],
+//              leftovers,
+//            )
+//          )
+//       |> Option.getOrThrow("Failed to check seed against map")
+//     | _ => Error("Should have an even number of seed values!")
+//     };
+//   };
+
+//   go([], maps);
+// };
+
+// maps
+// |> List.map(map =>
+//   checkSeedRange(seed, map)
+//   |> Option.map(((result, leftovers)) =>
+//     leftovers
+//     |> List.map(checkSeedAgainstMaps(_, maps))
+//   )
+// )
+
+// TODO: Need to track whether or not a seed range has been converted via a map
+
 let doPart2 =
-  parseAlmanac
-  >> Result.map(((seeds: seeds, almanac: almanac)) =>
-       mapSeedsAndFindMin(seeds, almanac)
+  p1Parse
+  >> Result.flatMap(((_seeds: seeds, almanac: almanac(p1Map))) => {
+       let almanac = almanac |> p1AlmanacToP2Almanac;
+
+       _seeds
+       |> seedsToSeedRange
+       |> Result.map(seedRanges => (seedRanges, almanac));
+     })
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.seedToSoil))
+       |> List.foldLeft(List.concat, [])
+       |> (ranges => (ranges, almanac))
+     )
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.soilToFertilizer))
+       |> List.foldLeft(List.concat, [])
      )
   >> Result.fold(
        err => "Error: " ++ err,
@@ -231,4 +433,5 @@ let p1TestInput = Day05Data.testInput;
 
 let p2TestInput = Day05Data.testInput;
 
-let actualInput = Day05Data.actualInput;
+// let actualInput = Day05Data.actualInput;
+let actualInput = Day05Data.testInput;
