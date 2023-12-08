@@ -233,10 +233,12 @@ type range = {
   end_: float,
 };
 
-let p1MapToP2Map = (p1Map: p1Map): p2Map => {
-  let {to_, from, range} = p1Map;
-
-  {start_: from, end_: from +. range, add: to_ -. from};
+// To convert from to/from/range to start/end/add:
+// start = from, end = from + range - 1, add = to - from
+let p1MapToP2Map = ({to_, from, range}: p1Map): p2Map => {
+  start_: from,
+  end_: from +. range -. 1.,
+  add: to_ -. from,
 };
 
 let p1AlmanacToP2Almanac =
