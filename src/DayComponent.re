@@ -6,13 +6,16 @@ type state = {
   part2TestResult: string,
   part1ActualResult: string,
   part2ActualResult: string,
+  sandboxInput: option(string),
+  sandboxResult: option(string),
 };
 
 [@deriving accessors]
 type action =
   | SetPart1TestInput(string)
   | SetPart2TestInput(string)
-  | SetActualInput(string);
+  | SetActualInput(string)
+  | SetSandboxInput(option(string));
 
 module H1 = {
   [@react.component]
@@ -64,6 +67,7 @@ module Box = {
 module Textarea = {
   type textAreaAction =
     | OnChange(string => action)
+    | OnOptionalChange(option(string) => action)
     | ReadOnly;
 
   [@react.component]
@@ -78,6 +82,15 @@ module Textarea = {
           ReactEvent.Form.target(e)##value |> toApply |> dispatch
         }
       />
+    | OnOptionalChange(toApply) =>
+      <textarea
+        className="textarea"
+        ?rows
+        value
+        onChange={e =>
+          Some(ReactEvent.Form.target(e)##value) |> toApply |> dispatch
+        }
+      />
     | ReadOnly => <textarea className="textarea" ?rows value readOnly=true />
     };
   };
@@ -87,6 +100,12 @@ module Textarea = {
 let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
   let (module Day) = dayInfo;
 
+  let doSandbox = (optionalFunc: option(string => string), input: string) =>
+    switch (optionalFunc) {
+    | None => "Cannot run sandbox, no sandbox function provided"
+    | Some(f) => input |> f
+    };
+
   let initialState = {
     part1TestInput: Day.p1TestInput,
     part2TestInput: Day.p2TestInput,
@@ -95,6 +114,8 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
     part2TestResult: Day.p2TestInput |> Day.doPart2,
     part1ActualResult: Day.actualInput |> Day.doPart1,
     part2ActualResult: Day.actualInput |> Day.doPart2,
+    sandboxInput: Day.sandboxInput,
+    sandboxResult: Day.sandboxInput |> Option.map(doSandbox(Day.doSandbox)),
   };
 
   let reducer = (state: state, action: action): state =>
@@ -114,6 +135,16 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
         actualInput: input,
         part1ActualResult: input |> Day.doPart1,
         part2ActualResult: input |> Day.doPart2,
+      }
+    | SetSandboxInput(None) => {
+        ...state,
+        sandboxInput: None,
+        sandboxResult: None,
+      }
+    | SetSandboxInput(Some(input)) => {
+        ...state,
+        sandboxInput: Some(input),
+        sandboxResult: Some(doSandbox(Day.doSandbox, input)),
       }
     };
 
@@ -151,6 +182,18 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
             </Column>
           </Columns>
         </Box>
+        {switch (state.sandboxInput) {
+         | None => <div />
+         | Some(input) =>
+           <Box>
+             <H1 title="Sandbox Input" />
+             <Textarea
+               value=input
+               action={Textarea.OnOptionalChange(setSandboxInput)}
+               dispatch
+             />
+           </Box>
+         }}
         <Box>
           <H1 title="Actual Input" />
           <Textarea
@@ -183,6 +226,14 @@ let make = (~dayInfo: (module Shared.DayInfo.DayInfo)) => {
             </Column>
           </Columns>
         </Box>
+        {switch (state.sandboxResult) {
+         | None => <div />
+         | Some(input) =>
+           <Box>
+             <H1 title="Sandbox Result" />
+             <Textarea value=input action=Textarea.ReadOnly dispatch />
+           </Box>
+         }}
         <Box>
           <H1 title="Actual Results" />
           <Columns>

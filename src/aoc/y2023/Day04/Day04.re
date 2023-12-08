@@ -192,8 +192,12 @@ let doPart2 =
   >> Result.flatMap(IntMap.fromList >> countTotal)
   >> Result.fold(err => "Error: " ++ err, Int.toString);
 
+let doSandbox = None;
+
 let p1TestInput = Day04Data.testInput;
 
 let p2TestInput = Day04Data.testInput;
 
 let actualInput = Day04Data.actualInput;
+
+let sandboxInput = None;

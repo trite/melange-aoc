@@ -51,8 +51,12 @@ let doPart1 = doWork(4);
 
 let doPart2 = doWork(14);
 
+let doSandbox = None;
+
 let p1TestInput = Day06Data.testInput;
 
 let p2TestInput = Day06Data.testInput;
 
 let actualInput = Day06Data.actualInput;
+
+let sandboxInput = None;

@@ -126,8 +126,12 @@ let doPart1 = doWork(applyMovesPart1);
 
 let doPart2 = doWork(applyMovesPart2);
 
+let doSandbox = None;
+
 let p1TestInput = Day05Data.testInput;
 
 let p2TestInput = Day05Data.testInput;
 
 let actualInput = Day05Data.actualInput;
+
+let sandboxInput = None;
