@@ -297,7 +297,7 @@ type seedConversionStatus =
   | Ignore;
 
 [@ocaml.warning "-27-32"]
-let checkSeedRange = (seedRange: range, map: p2Map) =>
+let checkSeedAgainstMap = (seedRange: range, map: p2Map) =>
   if (seedRange.start_ >= map.start_
       && seedRange.start_ <= map.end_
       || seedRange.end_ >= map.start_
@@ -334,38 +334,59 @@ let checkSeedRange = (seedRange: range, map: p2Map) =>
     ];
   };
 
-let rec checkSeedAgainstMaps = (seed: range, maps: list(p2Map)): list(range) => {
-  let start_ = seed.start_;
-  let end_ = seed.end_;
+// TODO: This still causes too much recursion, convert to a loop
+// let rec checkSeedAgainstMaps = (seed: range, maps: list(p2Map)): list(range) => {
+//   let start_ = seed.start_;
+//   let end_ = seed.end_;
 
-  Js.log({j|starting seed check, seed: {start_: $start_, end_: $end_}|j});
+//   Js.log({j|starting seed check, seed: {start_: $start_, end_: $end_}|j});
 
+//   maps
+//   |> List.map(map => checkSeedRange(seed, map))
+//   |> List.map((seedRanges: list(seedConversionStatus)) => {
+//        seedRanges
+//        |> List.map((seedRange: seedConversionStatus) => {
+//             switch (seedRange) {
+//             | Converted(range) => [range]
+//             | Unconverted(range) => checkSeedAgainstMaps(range, maps)
+//             | Ignore => []
+//             }
+//           })
+//        |> List.foldLeft(List.concat, [])
+//      })
+//   |> List.foldLeft(List.concat, []);
+// };
+
+let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
   maps
-  |> List.map(map => checkSeedRange(seed, map))
-  // |> List.foldLeft(List.concat, [])
-  |> List.map((seedRanges: list(seedConversionStatus)) => {
-       //  let {start_, end_} = result;
-       //  let printLeftovers =
-       //    leftovers |> List.toArray |> Js.Json.stringifyAny |> Option.getOrThrow;
-       //  Js.log(
-       //    {j|checking seed against maps, result: {start_: $start_, end_: $end_}, leftovers: $printLeftovers|j},
-       //  );
-       //  let leftoverResults =
-       //    leftovers
-       //    |> List.map(leftover => checkSeedAgainstMaps(leftover, maps))
-       //    |> List.foldLeft(List.concat, []);
-       //  [result, ...leftoverResults];
-       seedRanges
-       |> List.map((seedRange: seedConversionStatus) => {
-            switch (seedRange) {
-            | Converted(range) => [range]
-            | Unconverted(range) => checkSeedAgainstMaps(range, maps)
-            // |> List.foldLeft(List.concat, [])
-            | Ignore => []
-            }
-          })
-       |> List.foldLeft(List.concat, [])
-     })
+  |> List.map(checkSeedAgainstMap(seed))
+  |> List.foldLeft(List.concat, []);
+};
+
+let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
+  let result = ref([Unconverted(seed)]);
+
+  while (result^ |> List.filter((!=)(Ignore)) |> List.length > 0) {
+    result^
+    |> List.map(
+         fun
+         | Converted(_) => []
+         | Unconverted(range) => [range]
+         | Ignore => [],
+       )
+    |> List.foldLeft(List.concat, [])
+    |> List.map(checkSeedAgainstMaps(_, maps))
+    |> List.foldLeft(List.concat, [])
+    |> (newResult => result := newResult);
+  };
+
+  result^
+  |> List.map(
+       fun
+       | Converted(_) => []
+       | Unconverted(range) => [range]
+       | Ignore => [],
+     )
   |> List.foldLeft(List.concat, []);
 };
 
@@ -412,47 +433,48 @@ let doPart2 =
        |> seedsToSeedRange
        |> Result.map(seedRanges => (seedRanges, almanac));
      })
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.seedToSoil))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.soilToFertilizer))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.fertilizerToWater))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.waterToLight))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.lightToTemperature))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.temperatureToHumidity))
-       |> List.foldLeft(List.concat, [])
-       |> (ranges => (ranges, almanac))
-     )
-  >> Result.map(((seedRanges, almanac)) =>
-       seedRanges
-       |> List.map(checkSeedAgainstMaps(_, almanac.humidityToLocation))
-       |> List.foldLeft(List.concat, [])
-     )
+  >> Result.map(((seedRanges, almanac))
+       =>
+         seedRanges
+         |> List.map(checkSeedAgainstMaps(_, almanac.seedToSoil))
+         |> List.foldLeft(List.concat, [])
+       )
+       //  |> (ranges => (ranges, almanac))
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.soilToFertilizer))
+  //      |> List.foldLeft(List.concat, [])
+  //      |> (ranges => (ranges, almanac))
+  //    )
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.fertilizerToWater))
+  //      |> List.foldLeft(List.concat, [])
+  //      |> (ranges => (ranges, almanac))
+  //    )
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.waterToLight))
+  //      |> List.foldLeft(List.concat, [])
+  //      |> (ranges => (ranges, almanac))
+  //    )
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.lightToTemperature))
+  //      |> List.foldLeft(List.concat, [])
+  //      |> (ranges => (ranges, almanac))
+  //    )
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.temperatureToHumidity))
+  //      |> List.foldLeft(List.concat, [])
+  //      |> (ranges => (ranges, almanac))
+  //    )
+  // >> Result.map(((seedRanges, almanac)) =>
+  //      seedRanges
+  //      |> List.map(checkSeedAgainstMaps(_, almanac.humidityToLocation))
+  //    )
+  //  |> List.foldLeft(List.concat, [])
   >> Result.fold(
        err => "Error: " ++ err,
        Js.Json.stringifyAny >> Option.getOrThrow,
