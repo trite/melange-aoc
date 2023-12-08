@@ -366,16 +366,21 @@ let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
 let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
   let result = ref([Unconverted(seed)]);
 
-  while (result^ |> List.filter((!=)(Ignore)) |> List.length > 0) {
+  while (result^
+         |> List.filter(
+              fun
+              | Converted(_) => false
+              | Unconverted(_) => true
+              | Ignore => false,
+            )
+         |> List.length > 0) {
     result^
     |> List.map(
          fun
-         | Converted(_) => []
-         | Unconverted(range) => [range]
+         | Converted(range) => [Converted(range)]
+         | Unconverted(range) => checkSeedAgainstMaps(range, maps)
          | Ignore => [],
        )
-    |> List.foldLeft(List.concat, [])
-    |> List.map(checkSeedAgainstMaps(_, maps))
     |> List.foldLeft(List.concat, [])
     |> (newResult => result := newResult);
   };
@@ -383,8 +388,8 @@ let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
   result^
   |> List.map(
        fun
-       | Converted(_) => []
-       | Unconverted(range) => [range]
+       | Converted(range) => [range]
+       | Unconverted(_) => []
        | Ignore => [],
      )
   |> List.foldLeft(List.concat, []);
@@ -433,13 +438,12 @@ let doPart2 =
        |> seedsToSeedRange
        |> Result.map(seedRanges => (seedRanges, almanac));
      })
-  >> Result.map(((seedRanges, almanac))
-       =>
-         seedRanges
-         |> List.map(checkSeedAgainstMaps(_, almanac.seedToSoil))
-         |> List.foldLeft(List.concat, [])
-       )
-       //  |> (ranges => (ranges, almanac))
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.seedToSoil))
+       |> List.foldLeft(List.concat, [])
+     )
+  //  |> (ranges => (ranges, almanac))
   // >> Result.map(((seedRanges, almanac)) =>
   //      seedRanges
   //      |> List.map(checkSeedAgainstMaps(_, almanac.soilToFertilizer))
