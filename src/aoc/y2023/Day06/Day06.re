@@ -48,51 +48,21 @@ let parse =
 let range = (start_: int, end_: int): list(int) =>
   List.makeWithIndex(end_ - start_, i => start_ + i);
 
-// let getDistanceFromTimeHeld = (timeHeld: int) =>
-//   range(1, timeHeld) |> List.Int.sum;
-
-// let getDistanceTraveled = (timeHeld: int, runTime: int) =>
-//   getDistanceFromTimeHeld(timeHeld) * runTime;
-
-// let _getPossibleDistances = (minDistance: int, maxTime: int) =>
-//   range(1, maxTime)
-//   |> List.map(x => getDistanceTraveled(x, maxTime - x))
-//   |> List.filter(x => x >= minDistance);
-
-// let getPossibleDistances = (maxTime: int) =>
-//   range(1, maxTime) |> List.map(speed => speed * (maxTime - speed));
-
-// let getPossibleWinningDistances = (~maxTime: int, ~minDistance: int, ()) =>
-//   getPossibleDistances(maxTime) |> List.filter(x => x > minDistance);
-
-// let countPossibleVictories = (~maxTime: int, ~minDistance: int, ()) =>
-//   getPossibleWinningDistances(~maxTime, ~minDistance, ()) |> List.length;
-
-let countPossibleVictories = (~maxTime: int, ~minDistance: int, ()) =>
+let countPossibleVictories = ({time: maxTime, distance: minDistance}) =>
   range(1, maxTime)
   |> List.filter(timeHeld => timeHeld * (maxTime - timeHeld) > minDistance)
   |> List.length;
 
-assert(countPossibleVictories(~maxTime=7, ~minDistance=9, ()) == 4);
-assert(countPossibleVictories(~maxTime=15, ~minDistance=40, ()) == 8);
-assert(countPossibleVictories(~maxTime=30, ~minDistance=200, ()) == 9);
-
-// let getPossibleDistances = (maxTime: int) =>
-//   range(1, maxTime) |> List.map(getDistanceFromTimeHeld);
+assert(countPossibleVictories({time: 7, distance: 9}) == 4);
+assert(countPossibleVictories({time: 15, distance: 40}) == 8);
+assert(countPossibleVictories({time: 30, distance: 200}) == 9);
 
 let doPart1 =
   parse
   >> Result.map(
-       List.map(({time, distance}) =>
-         countPossibleVictories(~maxTime=time, ~minDistance=distance, ())
-       )
-       >> List.foldLeft(( * ), 1),
+       List.map(countPossibleVictories) >> List.foldLeft(( * ), 1),
      )
-  >> Result.fold(
-       err => "Error: " ++ err,
-       Int.toString,
-       //  List.toArray >> Js.Json.stringifyAny >> Option.getOrThrow,
-     );
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 let doPart2 = _ => "Not yet implemented";
 
@@ -105,33 +75,3 @@ let actualInput = Day06Data.actualInput;
 let doSandbox = None;
 
 let sandboxInput = None;
-
-// // let doSandbox =
-// //   Some(
-// //     input =>
-// //       input
-// //       |> Int.fromString
-// //       |> Result.fromOption("Failed to parse sandbox input as int")
-// //       // |> Result.map(getDistanceFromTimeHeld >> Int.toString)
-// //       |> Result.map(
-// //            getPossibleDistances(9)
-// //            >> Js.Json.stringifyAny
-// //            >> Option.getOrThrow,
-// //          )
-// //       |> Result.fold(err => "Error: " ++ err, id),
-// //   );
-
-// let doSandbox =
-//   Some(
-//     _input =>
-//       // getPossibleDistances(7)
-//       // countPossibleVictories(~maxTime=7, ~minDistance=9, ())
-//       // countPossibleVictories(~maxTime=15, ~minDistance=40, ())
-//       // countPossibleVictories(~maxTime=30, ~minDistance=200, ())
-//       countPossibleVictories(~maxTime=30, ~minDistance=200, ())
-//       |> List.toArray
-//       |> Js.Json.stringifyAny
-//       |> Option.getOrThrow,
-//   );
-
-// let sandboxInput = Some("");
