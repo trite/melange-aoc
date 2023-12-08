@@ -176,58 +176,12 @@ let doPart1 =
      )
   >> Result.fold(err => "Error: " ++ err, Float.toString);
 
-// The FP methods I'm familiar with for this cause memory or stack overflows
-// So going for the imperative approach
-// let _mapRangeAndFindMin =
-//     (startingSeed: float, range: float, almanac: almanac(p1Map)) => {
-//   let i = ref(startingSeed);
-//   let result = ref(0.);
-
-//   while (i^ < startingSeed +. range) {
-//     i := i^ +. 1.;
-
-//     result := Float.min(result^, mapSeed(almanac, i^));
-//   };
-
-//   result^;
-// };
-
-// let _mapSeedsAndFindMin = (seeds: seeds, almanac: almanac(p1Map)) => {
-//   let rec go = (minResult: float, rest) => {
-//     switch (rest) {
-//     | [] => Ok(minResult)
-//     | [startingSeed, range, ...rest] =>
-//       _mapRangeAndFindMin(startingSeed, range, almanac)
-//       |> Float.min(minResult)
-//       |> go(_, rest)
-//     | _ => Error("Should have an even number of seed values!")
-//     };
-//   };
-
-//   go(0., seeds);
-// };
-
-// This solution would eventually work, but it will scan through
-//   so many values it could take days, weeks, or longer to finish
-
-// TODO: figure out how I want to go about this
-//   Perhaps try to make sure I'm only testing seeds that fall in valid map ranges
-
-// ALTERNATELY:
-//   Maybe figure out which humidityToLocation values will produce the smallest results
-//   Then find which temperatureToHumidity values can produce values in those ranges
-//   This continue walking backwards till I reach seedToSoil
-//   Then find the smallest seed value in the resulting ranges
-
-// Given the way this is about to deal with part 2, this layout is easier to reason about
-[@ocaml.warning "-69"]
 type p2Map = {
   start_: float,
   end_: float,
   add: float,
 };
 
-[@ocaml.warning "-69"]
 type range = {
   start_: float,
   end_: float,
@@ -264,21 +218,6 @@ let p1AlmanacToP2Almanac =
   humidityToLocation: List.map(p1MapToP2Map, humidityToLocation),
 };
 
-// let _mapSeedsAndFindMin = (seeds: seeds, almanac: almanac(p1Map)) => {
-//   let rec go = (minResult: float, rest) => {
-//     switch (rest) {
-//     | [] => Ok(minResult)
-//     | [startingSeed, range, ...rest] =>
-//       _mapRangeAndFindMin(startingSeed, range, almanac)
-//       |> Float.min(minResult)
-//       |> go(_, rest)
-//     | _ => Error("Should have an even number of seed values!")
-//     };
-//   };
-
-//   go(0., seeds);
-// };
-
 let seedsToSeedRange = (seeds: seeds): result(list(range), string) => {
   let rec go = (acc: list(range), rest) => {
     switch (rest) {
@@ -297,25 +236,6 @@ type seedConversionStatus =
   | Unconverted(range)
   | Ignore;
 
-let seedConversionStatusToString =
-    (seedConversionStatus: seedConversionStatus) =>
-  switch (seedConversionStatus) {
-  | Converted(range) =>
-    "Converted: {start_: "
-    ++ (range.start_ |> Float.toString)
-    ++ ", end_: "
-    ++ (range.end_ |> Float.toString)
-    ++ "}"
-  | Unconverted(range) =>
-    "Unconverted: {start_: "
-    ++ (range.start_ |> Float.toString)
-    ++ ", end_: "
-    ++ (range.end_ |> Float.toString)
-    ++ "}"
-  | Ignore => "Ignore"
-  };
-
-[@ocaml.warning "-27-32"]
 let checkSeedAgainstMap = (seedRange: range, map: p2Map) =>
   if (seedRange.start_ >= map.start_
       && seedRange.start_ <= map.end_
@@ -341,136 +261,60 @@ let checkSeedAgainstMap = (seedRange: range, map: p2Map) =>
         Ignore;
       };
 
-    // let leftovers =
-    //   [leftoverBefore, leftoverAfter] |> List.filter((!=)(Ignore));
-
-    // Some((result, leftovers));
-
-    // Js.log(
-    //   "result.start: "
-    //   ++ (result.start_ |> Float.toString)
-    //   ++ ", result.end: "
-    //   ++ (result.end_ |> Float.toString)
-    //   ++ ", leftoverBefore.start: "
-    //   ++ (leftoverBefore.start_ |> Float.toString)
-    //   ++ ", leftoverBefore.end: "
-    //   ++ (leftoverBefore.end_ |> Float.toString)
-    //   ++ ", leftoverAfter.start: "
-    //   ++ (leftoverAfter.start_ |> Float.toString)
-    //   ++ ", leftoverAfter.end: "
-    //   ++ (leftoverAfter.end_ |> Float.toString),
-    // );
-
-    let resultString = seedConversionStatusToString(result);
-    let leftoverBeforeString = seedConversionStatusToString(leftoverBefore);
-    let leftoverAfterString = seedConversionStatusToString(leftoverAfter);
-
-    Js.log(
-      "checkSeedAgainstMap result: "
-      ++ resultString
-      ++ ", leftoverBefore: "
-      ++ leftoverBeforeString
-      ++ ", leftoverAfter: "
-      ++ leftoverAfterString,
-    );
-
-    let res =
-      [result, leftoverBefore, leftoverAfter] |> List.filter((!=)(Ignore));
-
-    res
-    |> List.map(seedConversionStatusToString)
-    |> List.String.joinWith(", ")
-    |> (++)("checkSeedAgainstMap final result: ")
-    |> Js.log;
-
-    res;
+    [result, leftoverBefore, leftoverAfter] |> List.filter((!=)(Ignore));
   } else {
-    [
-      // TODO: If this is `Ignore` then non-mapping values are dropped
-      //       But if this is `Unconverted` then duplicates are kept
-      Ignore,
-    ];
+    [Ignore];
   };
 
-// TODO: This still causes too much recursion, convert to a loop
-// let rec checkSeedAgainstMaps = (seed: range, maps: list(p2Map)): list(range) => {
-//   let start_ = seed.start_;
-//   let end_ = seed.end_;
+let countUnconverted =
+  List.filter(
+    fun
+    | Converted(_) => false
+    | Unconverted(_) => true
+    | Ignore => false,
+  )
+  >> List.length;
 
-//   Js.log({j|starting seed check, seed: {start_: $start_, end_: $end_}|j});
+let countConverted =
+  List.filter(
+    fun
+    | Converted(_) => true
+    | Unconverted(_) => false
+    | Ignore => false,
+  )
+  >> List.length;
 
-//   maps
-//   |> List.map(map => checkSeedRange(seed, map))
-//   |> List.map((seedRanges: list(seedConversionStatus)) => {
-//        seedRanges
-//        |> List.map((seedRange: seedConversionStatus) => {
-//             switch (seedRange) {
-//             | Converted(range) => [range]
-//             | Unconverted(range) => checkSeedAgainstMaps(range, maps)
-//             | Ignore => []
-//             }
-//           })
-//        |> List.foldLeft(List.concat, [])
-//      })
-//   |> List.foldLeft(List.concat, []);
-// };
-
-// TODO: this should probably be re-written to be recursive
-//   Each recursion should check a seed against a map
-//   Then if the result comes back converted it should return
-//   If converted and unconverted values come back, unconverted should be checked against all maps
-//   If only 1 unconverted range comes back then call checkSeedAgainstMaps with the remaining maps
-//   If multiple unconverted ranges come back with no converted ranges then something has gone wrong
 let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
-  maps
-  |> List.map(checkSeedAgainstMap(seed))
-  |> List.foldLeft(List.concat, []);
+  let maps = ref(maps);
+  let result = ref([]);
+
+  while (maps^ |> List.length > 0) {
+    let map = maps^ |> List.head |> Option.getOrThrow;
+
+    let checkedSeeds = checkSeedAgainstMap(seed, map);
+
+    let convertedCount = checkedSeeds |> countConverted;
+
+    if (convertedCount > 0) {
+      result := checkedSeeds;
+      maps := [];
+    } else {
+      maps := maps^ |> List.tail |> Option.getOrThrow;
+    };
+  };
+
+  // When no maps applied to the seed, it is already good to go
+  if (result^ == []) {
+    result := [Converted(seed)];
+  };
+
+  result^;
 };
 
 let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
   let result = ref([Unconverted(seed)]);
-  let convertedCount = ref(0);
-  let unconvertedCount = ref(0);
 
-  let countUnconverted =
-    List.filter(
-      fun
-      | Converted(_) => false
-      | Unconverted(_) => true
-      | Ignore => false,
-    )
-    >> List.length;
-
-  let countConverted =
-    List.filter(
-      fun
-      | Converted(_) => true
-      | Unconverted(_) => false
-      | Ignore => false,
-    )
-    >> List.length;
-
-  let shouldContinue = (convertedCount, unconvertedCount, result) =>
-    convertedCount != countConverted(result)
-    || unconvertedCount != countUnconverted(result);
-
-  // while (result^
-  //        |> List.filter(
-  //             fun
-  //             | Converted(_) => false
-  //             | Unconverted(_) => true
-  //             | Ignore => false,
-  //           )
-  //        |> List.length > 0) {
-  // break from loop once no more values can be converted
-  while (shouldContinue(convertedCount^, unconvertedCount^, result^)) {
-    Js.log("About to potentially run checkSeedAgainstMaps");
-
-    Js.log(
-      "result before: "
-      ++ (result^ |> Js.Json.stringifyAny |> Option.getOrThrow),
-    );
-
+  while (countUnconverted(result^) > 0) {
     result^
     |> List.map(
          fun
@@ -481,21 +325,8 @@ let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
     |> List.foldLeft(List.concat, [])
     |> (
       newResult => {
-        Js.log(
-          "newResult: "
-          ++ (newResult |> Js.Json.stringifyAny |> Option.getOrThrow),
-        );
         result := newResult;
-        convertedCount := countConverted(newResult);
-        unconvertedCount := countUnconverted(newResult);
       }
-    );
-
-    Js.log("Finished running checkSeedAgainstMaps");
-
-    Js.log(
-      "result after: "
-      ++ (result^ |> Js.Json.stringifyAny |> Option.getOrThrow),
     );
   };
 
@@ -509,46 +340,15 @@ let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
   |> List.foldLeft(List.concat, []);
 };
 
-// let checkSeedRanges = (seedRanges: list(range), map: p2Map) =>
-//   seedRanges |> List.map(checkSeedRange(map)) |> List.catOptions;
-
-// let checkSeedAgainstMaps = (seed: range, maps: list(p2Map)) => {
-//   let rec go = (acc: list(range), rest) => {
-//     switch (rest) {
-//     | [] => Ok(acc)
-//     | [map, ...rest] =>
-//       checkSeedRange(seed, map)
-//       |> Option.map(((result, leftovers)) =>
-//            go(
-//              [{start_: result.start_, end_: result.end_}, ...acc],
-//              leftovers,
-//            )
-//          )
-//       |> Option.getOrThrow("Failed to check seed against map")
-//     | _ => Error("Should have an even number of seed values!")
-//     };
-//   };
-
-//   go([], maps);
-// };
-
-// maps
-// |> List.map(map =>
-//   checkSeedRange(seed, map)
-//   |> Option.map(((result, leftovers)) =>
-//     leftovers
-//     |> List.map(checkSeedAgainstMaps(_, maps))
-//   )
-// )
-
-// TODO: Need to track whether or not a seed range has been converted via a map
+let findMinValue = (ranges: list(range)) =>
+  ranges |> List.map(({start_, _}) => start_) |> List.Float.min;
 
 let doPart2 =
   p1Parse
-  >> Result.flatMap(((_seeds: seeds, almanac: almanac(p1Map))) => {
+  >> Result.flatMap(((seeds: seeds, almanac: almanac(p1Map))) => {
        let almanac = almanac |> p1AlmanacToP2Almanac;
 
-       _seeds
+       seeds
        |> seedsToSeedRange
        |> Result.map(seedRanges => (seedRanges, almanac));
      })
@@ -564,35 +364,35 @@ let doPart2 =
        |> List.foldLeft(List.concat, [])
        |> (ranges => (ranges, almanac))
      )
-  // >> Result.map(((seedRanges, almanac)) =>
-  //      seedRanges
-  //      |> List.map(checkSeedAgainstMaps(_, almanac.fertilizerToWater))
-  //      |> List.foldLeft(List.concat, [])
-  //      |> (ranges => (ranges, almanac))
-  //    )
-  // >> Result.map(((seedRanges, almanac)) =>
-  //      seedRanges
-  //      |> List.map(checkSeedAgainstMaps(_, almanac.waterToLight))
-  //      |> List.foldLeft(List.concat, [])
-  //      |> (ranges => (ranges, almanac))
-  //    )
-  // >> Result.map(((seedRanges, almanac)) =>
-  //      seedRanges
-  //      |> List.map(checkSeedAgainstMaps(_, almanac.lightToTemperature))
-  //      |> List.foldLeft(List.concat, [])
-  //      |> (ranges => (ranges, almanac))
-  //    )
-  // >> Result.map(((seedRanges, almanac)) =>
-  //      seedRanges
-  //      |> List.map(checkSeedAgainstMaps(_, almanac.temperatureToHumidity))
-  //      |> List.foldLeft(List.concat, [])
-  //      |> (ranges => (ranges, almanac))
-  //    )
-  // >> Result.map(((seedRanges, almanac)) =>
-  //      seedRanges
-  //      |> List.map(checkSeedAgainstMaps(_, almanac.humidityToLocation))
-  //    )
-  //  |> List.foldLeft(List.concat, [])
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.fertilizerToWater))
+       |> List.foldLeft(List.concat, [])
+       |> (ranges => (ranges, almanac))
+     )
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.waterToLight))
+       |> List.foldLeft(List.concat, [])
+       |> (ranges => (ranges, almanac))
+     )
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.lightToTemperature))
+       |> List.foldLeft(List.concat, [])
+       |> (ranges => (ranges, almanac))
+     )
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.temperatureToHumidity))
+       |> List.foldLeft(List.concat, [])
+       |> (ranges => (ranges, almanac))
+     )
+  >> Result.map(((seedRanges, almanac)) =>
+       seedRanges
+       |> List.map(checkSeedAgainstMaps(_, almanac.humidityToLocation))
+     )
+  >> Result.map(List.foldLeft(List.concat, []) >> findMinValue)
   >> Result.fold(
        err => "Error: " ++ err,
        Js.Json.stringifyAny >> Option.getOrThrow,
@@ -602,5 +402,4 @@ let p1TestInput = Day05Data.testInput;
 
 let p2TestInput = Day05Data.testInput;
 
-// let actualInput = Day05Data.actualInput;
-let actualInput = Day05Data.testInput;
+let actualInput = Day05Data.actualInput;
