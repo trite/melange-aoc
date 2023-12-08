@@ -28,8 +28,12 @@ let doPart1 = doWork(fullyContains);
 
 let doPart2 = doWork(overlaps);
 
+let doSandbox = None;
+
 let p1TestInput = Day04Data.testInput;
 
 let p2TestInput = Day04Data.testInput;
 
 let actualInput = Day04Data.actualInput;
+
+let sandboxInput = None;

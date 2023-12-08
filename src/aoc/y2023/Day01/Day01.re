@@ -109,8 +109,12 @@ let doPart2 =
   >> Result.map(List.Int.sum)
   >> Result.fold(err => "Error: " ++ err, Int.toString);
 
+let doSandbox = None;
+
 let p1TestInput = Day01Data.p1TestInput;
 
 let p2TestInput = Day01Data.p2TestInput;
 
 let actualInput = Day01Data.actualInput;
+
+let sandboxInput = None;

@@ -398,8 +398,12 @@ let doPart2 =
        Js.Json.stringifyAny >> Option.getOrThrow,
      );
 
+let doSandbox = None;
+
 let p1TestInput = Day05Data.testInput;
 
 let p2TestInput = Day05Data.testInput;
 
 let actualInput = Day05Data.actualInput;
+
+let sandboxInput = None;
