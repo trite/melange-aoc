@@ -95,10 +95,12 @@ let p2Parse =
   >> Result.flatMap(((time, distanceLine)) => {
        p2ParseLine(distanceLine, "Distance")
        |> Result.map(distance => {time, distance})
-     })
-  >> Result.map(countPossibleVictories);
+     });
 
-let doPart2 = p2Parse >> Result.fold(err => "Error: " ++ err, Int.toString);
+let doPart2 =
+  p2Parse
+  >> Result.map(countPossibleVictories)
+  >> Result.fold(err => "Error: " ++ err, Int.toString);
 
 let p1TestInput = Day06Data.testInput;
 
