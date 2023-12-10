@@ -54,55 +54,72 @@ let parseNodes = (nodesRaw: list(string)) => {
   nodesRaw
   |> List.map(parseNodeLine)
   |> List.Result.sequence
-  |> Result.flatMap(nodePairs => {
-       nodePairs
-       |> List.head
-       |> Result.fromOption("Failed to grab first node name")
-       |> Result.flatMap(((firstNodeName, _)) =>
-            nodePairs
-            |> List.last
-            |> Result.fromOption("Failed to grab last node name")
-            |> Result.map(((lastNodeName, _)) =>
-                 (firstNodeName, lastNodeName)
-               )
-          )
-       |> Result.map(((firstNodeName, lastNodeName)) => {
-            (firstNodeName, lastNodeName, nodePairs |> StringMap.fromList)
-          })
-     });
+  |> Result.map(StringMap.fromList);
 };
 
-let countStepsToEnd =
-    ({directions, nodes, firstNodeName, lastNodeName}: directionsAndNodes) => {
-  let rec loop = (currentNodeName, steps) =>
-    switch (currentNodeName) {
-    | name when name == lastNodeName => Ok(steps)
-    | name =>
-      nodes
-      |> StringMap.get(name)
-      |> Result.fromOption("Failed to find node")
-      |> Result.flatMap(node =>
-           switch (directions |> List.head) {
-           | Some(Left) => loop(node.left, steps + 1)
-           | Some(Right) => loop(node.right, steps + 1)
-           | None => Error("Ran out of directions")
-           // | None => loop
-           }
-         )
-    };
-  loop(firstNodeName, 0);
-};
+// Recursive approach results in too much recursion
+// let countStepsToEnd =
+//     ({directions, nodes, firstNodeName, lastNodeName}: directionsAndNodes) => {
+//   let rec loop = (currentNodeName, steps) =>
+//     switch (currentNodeName) {
+//     | name when name == lastNodeName => Ok(steps)
+//     | name =>
+//       nodes
+//       |> StringMap.get(name)
+//       |> Result.fromOption("Failed to find node")
+//       |> Result.flatMap(node =>
+//            switch (directions |> List.head) {
+//            | Some(Left) => loop(node.left, steps + 1)
+//            | Some(Right) => loop(node.right, steps + 1)
+//            | None => Error("Ran out of directions")
+//            // | None => loop
+//            }
+//          )
+//     };
+//   loop(firstNodeName, 0);
+// };
 
 let countStepsToEnd =
     ({directions, nodes, firstNodeName, lastNodeName}: directionsAndNodes) => {
   let stepCount = ref(0);
   let foundEnd = ref(false);
+  let currentNode = ref(firstNodeName);
+  let errorState = ref(Ok());
+  let currentDirections = ref(directions);
 
-  while (! foundEnd^) {
-    {
-      // TODO: convert to a loop since there's too much recursion otherwise
+  while (! foundEnd^ && errorState^ == Ok()) {
+    let node = nodes |> StringMap.get(currentNode^);
+
+    switch (currentDirections^ |> List.head, node) {
+    | (Some(Left), Some(node)) =>
+      stepCount := stepCount^ + 1;
+
+      currentDirections := currentDirections^ |> List.tail |> Option.getOrThrow;
+
+      currentNode := node.left;
+    | (Some(Right), Some(node)) =>
+      stepCount := stepCount^ + 1;
+
+      currentDirections := currentDirections^ |> List.tail |> Option.getOrThrow;
+
+      currentNode := node.right;
+    | (None, _) => currentDirections := directions
+    | (Some(Left), None)
+    | (Some(Right), None) =>
+      errorState := Error("Couldn't find node with name: " ++ currentNode^)
+    };
+
+    if (currentNode^ == lastNodeName) {
+      foundEnd := true;
+    };
+
+    if (stepCount^ > 100000) {
+      errorState := Error("Too many steps");
+      foundEnd := true;
     };
   };
+
+  errorState^ |> Result.map(_ => stepCount^);
 };
 
 let doPart1 =
@@ -128,11 +145,13 @@ let doPart1 =
   >> Result.flatMap(((directions, nodesRaw)) =>
        nodesRaw
        |> parseNodes
-       |> Result.map(((firstNodeName, lastNodeName, nodes)) =>
-            {directions, nodes, firstNodeName, lastNodeName}
+       |> Result.map(nodes =>
+            {directions, nodes, firstNodeName: "AAA", lastNodeName: "ZZZ"}
           )
      )
+  >> Result.tap(_ => Js.log("About to start counting steps"))
   >> Result.flatMap(countStepsToEnd)
+  >> Result.tap(_ => Js.log("Finished counting steps"))
   >> Js.Json.stringifyAny
   >> Option.getOrThrow;
 
