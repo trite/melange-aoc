@@ -96,7 +96,7 @@ let countStepsToEnd =
     };
   };
 
-  errorState^ |> Result.map(_ => stepCount^);
+  errorState^ |> Result.map(const(stepCount^));
 };
 
 let parse =
@@ -172,7 +172,7 @@ let jsLcm: (float, float) => float = [%raw
 
 let doPart2 =
   parse
-  >> Result.tap(_ => Js.log("About to start counting steps - part 2"))
+  >> Result.tap(const(Js.log("About to start counting steps - part 2")))
   >> Result.flatMap(({currentNodeNames, _} as directionsAndNodes) =>
        currentNodeNames
        |> List.map(currentNodeName =>
@@ -190,7 +190,7 @@ let doPart2 =
             Ok([]),
           )
      )
-  >> Result.tap(_ => Js.log("Finished counting steps - part 2"))
+  >> Result.tap(const(Js.log("Finished counting steps - part 2")))
   >> Result.map(
        List.map(Tuple.second >> Int.toFloat) >> List.foldLeft(jsLcm, 1.),
      )
