@@ -25,5 +25,6 @@ let daysMap: StringMap.t(dayItem) =
     ("/y2023/d07", {component: (module Y2023.Day07)}),
     ("/y2023/d08", {component: (module Y2023.Day08)}),
     ("/y2023/d09", {component: (module Y2023.Day09)}),
+    ("/y2023/d10", {component: (module Y2023.Day10)}),
   ]
   |> StringMap.fromList;
