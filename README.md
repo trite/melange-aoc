@@ -1,3 +1,12 @@
+# Bundling workflow
+Till this is automated, here are the steps to update the bundled code for use on github.io:
+* Make sure `main` is up to date
+* Rebase `publishing` onto `main`
+* Run `make bundle`
+* Commit `main.js` changes to `publishing` branch
+* Push it real good
+* May take a few minutes for the changes to show up, check status at https://github.com/trite/melange-aoc/deployments/github-pages
+
 # Relude temporary workaround
 If you run into issues around Relude/Bastet that look like the errors below, then here's some info from a while ago. As of the time of writing this, `make install` should handle both libraries correctly.
 
