@@ -1,3 +1,12 @@
+# Bundling workflow
+Till this is automated, here are the steps to update the bundled code for use on github.io:
+* Make sure `main` is up to date
+* Rebase `publishing` onto `main`
+* Run `make bundle`
+* Commit `main.js` changes to `publishing` branch
+* Push it real good
+* May take a few minutes for the changes to show up, check status at https://github.com/trite/melange-aoc/deployments/github-pages
+
 # Relude temporary workaround
 * Relude needs to be pinned until it can be published to Opam
 * Relude has its own pinned items (bastet) that won't be installed correctly via just `make install`, which will fail with something like this:
