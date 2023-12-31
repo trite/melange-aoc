@@ -6,4 +6,4 @@
  (libraries reason-react melange.belt relude shared)
  (preprocess
   (pps melange.ppx reason-react-ppx))
- (melange.compile_flags -open Relude.Globals))
+ (melange.compile_flags -open Relude.Globals -open Shared.Globals))
