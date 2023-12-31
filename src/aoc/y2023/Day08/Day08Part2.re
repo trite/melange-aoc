@@ -148,38 +148,28 @@ let _lcm = (m, n) => {
   };
 };
 
-// Returns infinity
-let _jsLcm: (float, float) => float = [%raw
+let jsLcm: (float, float) => float = [%raw
   {j|
-  function leastCommonMultiple(min, max) {
-      function range(min, max) {
-          var arr = [];
-          for (var i = min; i <= max; i++) {
-              arr.push(i);
-          }
-          return arr;
-      }
+  function lcm(m, n) {
+    function gcd(a, b) {
+        for (let temp = b; b !== 0;) {
+            b = a % b;
+            a = temp;
+            temp = b;
+        }
+        return a;
+    }
 
-      function gcd(a, b) {
-          return !b ? a : gcd(b, a % b);
-      }
+    function lcmFunction(a, b) {
+        const gcdValue = gcd(a, b);
+        return (a * b) / gcdValue;
+    }
 
-      function lcm(a, b) {
-          return (a * b) / gcd(a, b);
-      }
-
-      var multiple = min;
-      range(min, max).forEach(function(n) {
-          multiple = lcm(multiple, n);
-      });
-
-      return multiple;
+    return lcmFunction(m, n);
   }
 |j}
 ];
 
-// TODO: This will just print the cycles of each node
-//         Answer is least common multiple of these values
 let doPart2 =
   parse
   >> Result.tap(_ => Js.log("About to start counting steps - part 2"))
@@ -201,19 +191,13 @@ let doPart2 =
           )
      )
   >> Result.tap(_ => Js.log("Finished counting steps - part 2"))
-  // >> Result.map(
-  //      List.map(Tuple.second >> Int.toFloat) >> List.foldLeft(jsLcm, 1.),
-  //    )
-  // >> Result.fold(err => {j|Error: $err|j}, lcm => {j|LCM of these is $lcm|j});
-  >> Result.fold(
-       err => {j|Error: $err|j},
-       List.map(((_nodeName, steps)) => {j|$steps|j})
-       >> List.String.joinWith("\n")
-       >> (++)("Result is LCM of these values:\n"),
-     );
+  >> Result.map(
+       List.map(Tuple.second >> Int.toFloat) >> List.foldLeft(jsLcm, 1.),
+     )
+  >> Result.fold(err => {j|Error: $err|j}, lcm => {j|$lcm|j});
 
 /*
- Results:
+ Results of each cycle:
    15517
    19199
    20777
@@ -222,6 +206,4 @@ let doPart2 =
    13939
 
  LCM of these is 13663968099527
-
- TODO: write out something to calculate the LCM
  */
