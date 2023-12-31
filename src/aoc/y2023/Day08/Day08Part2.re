@@ -2,13 +2,11 @@ type direction =
   | Left
   | Right;
 
-// [@ocaml.warning "-69"]
 type node = {
   left: string,
   right: string,
 };
 
-// [@ocaml.warning "-69"]
 type directionsAndNodes = {
   directions: list(direction),
   nodes: StringMap.t(node),
@@ -58,113 +56,41 @@ let parseNodes = (nodesRaw: list(string)) => {
      );
 };
 
-// Recursive approach results in too much recursion
-// let countStepsToEnd =
-//     ({directions, nodes, firstNodeName, lastNodeName}: directionsAndNodes) => {
-//   let rec loop = (currentNodeName, steps) =>
-//     switch (currentNodeName) {
-//     | name when name == lastNodeName => Ok(steps)
-//     | name =>
-//       nodes
-//       |> StringMap.get(name)
-//       |> Result.fromOption("Failed to find node")
-//       |> Result.flatMap(node =>
-//            switch (directions |> List.head) {
-//            | Some(Left) => loop(node.left, steps + 1)
-//            | Some(Right) => loop(node.right, steps + 1)
-//            | None => Error("Ran out of directions")
-//            // | None => loop
-//            }
-//          )
-//     };
-//   loop(firstNodeName, 0);
-// };
-
 let countStepsToEnd =
-    ({directions, nodes, currentNodeNames}: directionsAndNodes)
-    : result(int, string) => {
+    ({directions, nodes, _}: directionsAndNodes, firstNodeName) => {
   let stepCount = ref(0);
   let foundEnd = ref(false);
-  let currentNodeNames = ref(currentNodeNames);
-  let errorState: ref(result(unit, string)) = ref(Ok());
+  let currentNode = ref(firstNodeName);
+  let errorState = ref(Ok());
   let currentDirections = ref(directions);
 
-  // let getNode = (nodeName: string) => nodes |> StringMap.get(nodeName);
-
   while (! foundEnd^ && errorState^ == Ok()) {
-    // If we've run out of directions, restart the list
-    if (currentDirections^ == []) {
-      currentDirections := directions;
+    let node = nodes |> StringMap.get(currentNode^);
+
+    switch (currentDirections^ |> List.head, node) {
+    | (Some(Left), Some(node)) =>
+      stepCount := stepCount^ + 1;
+
+      currentDirections := currentDirections^ |> List.tail |> Option.getOrThrow;
+
+      currentNode := node.left;
+    | (Some(Right), Some(node)) =>
+      stepCount := stepCount^ + 1;
+
+      currentDirections := currentDirections^ |> List.tail |> Option.getOrThrow;
+
+      currentNode := node.right;
+    | (None, _) => currentDirections := directions
+    | (Some(Left), None)
+    | (Some(Right), None) =>
+      errorState := Error("Couldn't find node with name: " ++ currentNode^)
     };
 
-    stepCount := stepCount^ + 1;
+    if (currentNode^ |> String.endsWith(~search="Z")) {
+      foundEnd := true;
+    };
 
-    currentNodeNames^
-    |> List.map(currentNode => {
-         switch (
-           currentDirections^ |> List.head,
-           nodes |> StringMap.get(currentNode),
-         ) {
-         | (Some(Left), Some(node)) => Ok(node.left)
-         | (Some(Right), Some(node)) => Ok(node.right)
-         | (None, Some(_)) =>
-           // shouldn't be possible
-           Error("Shouldn't have an empty set of directions here!")
-         | (_, None) =>
-           // we've hit a dead end
-           Error("Couldn't find node with name: " ++ currentNode)
-         }
-       })
-    |> List.Result.sequence
-    |> Result.fold(
-         // This is a horrible way to do this, but leaving it for now
-         err => {
-           errorState := Error(err);
-           foundEnd := true;
-           ();
-         },
-         newCurrentNodeNames => {
-           currentDirections :=
-             currentDirections^ |> List.tail |> Option.getOrThrow;
-           currentNodeNames := newCurrentNodeNames;
-           ();
-         },
-       );
-    // |> Result.map(_newCurrentNodeNames => {
-    //      // This is a horrible way to do this, but leaving it for now
-    //      currentDirections :=
-    //        currentDirections^ |> List.tail |> Option.getOrThrow;
-    //      ();
-    //      //  newCurrentNodeNames;
-    //    })
-    // |> Result.mapError(err => {
-    //      errorState := Error(err);
-    //      foundEnd := true;
-    //      ();
-    //    })
-    // |> Result.fold(
-    //      newCurrentNodeNames => {currentNodeNames := newCurrentNodeNames},
-    //      error => {errorState := Error(error)},
-    //    );
-
-    // replace with a fold over currentNode
-    // if (currentNode^ == lastNodeName) {
-    //   foundEnd := true;
-    // };
-
-    currentNodeNames^
-    |> List.map(currentNodeName =>
-         currentNodeName |> String.endsWith(~search="Z")
-       )
-    |> List.foldLeft((acc, x) => acc && x, true)
-    |> (
-      allEndNodes =>
-        if (allEndNodes) {
-          foundEnd := true;
-        }
-    );
-
-    if (stepCount^ > 1_000_000_000) {
+    if (stepCount^ > 100000) {
       errorState := Error("Too many steps");
       foundEnd := true;
     };
@@ -193,40 +119,109 @@ let parse =
             }
           )
      )
-  >> Result.flatMap(((directions, nodesRaw)) => {
+  >> Result.flatMap(((directions, nodesRaw)) =>
        nodesRaw
        |> parseNodes
-       |> Result.map(((nodeNames, nodes)) => {
+       |> Result.map(((nodeNames, nodes)) =>
             {
-              // Js.log("nodes raw: " ++ (nodesRaw |> List.String.joinWith(",")));
-
               directions,
               nodes,
               currentNodeNames:
                 nodeNames |> List.filter(String.endsWith(~search="A")),
             }
-          })
-     });
+          )
+     );
 
-// TODO: this version should eventually work, but may take a very long time to finish
+// Fails because of int overflow
+let _lcm = (m, n) => {
+  let rec gcd = (u, v) =>
+    if (v != 0) {
+      gcd(v, Int.modulo(u, v));
+    } else {
+      Int.abs(u);
+    };
+
+  switch (m, n) {
+  | (0, _)
+  | (_, 0) => 0
+  | (m, n) => Int.abs(m * n) / gcd(m, n)
+  };
+};
+
+// Returns infinity
+let _jsLcm: (float, float) => float = [%raw
+  {j|
+  function leastCommonMultiple(min, max) {
+      function range(min, max) {
+          var arr = [];
+          for (var i = min; i <= max; i++) {
+              arr.push(i);
+          }
+          return arr;
+      }
+
+      function gcd(a, b) {
+          return !b ? a : gcd(b, a % b);
+      }
+
+      function lcm(a, b) {
+          return (a * b) / gcd(a, b);
+      }
+
+      var multiple = min;
+      range(min, max).forEach(function(n) {
+          multiple = lcm(multiple, n);
+      });
+
+      return multiple;
+  }
+|j}
+];
+
+// TODO: This will just print the cycles of each node
+//         Answer is least common multiple of these values
 let doPart2 =
   parse
   >> Result.tap(_ => Js.log("About to start counting steps - part 2"))
-  // >> Result.tap(({currentNodeNames, _})
-  //      //  Js.log(
-  //      //    "directions: " ++
-  //      //    directions ++
-  //      //    "nodes: " ++
-  //      //    nodes ++
-  //      //    "currentNodeNames: " ++
-  //      //    currentNodeNames,
-  //      //  )
-  //      =>
-  //        Js.log(
-  //          "starting Nodes: "
-  //          ++ (currentNodeNames |> List.String.joinWith(",")),
-  //        )
-  //      )
-  >> Result.flatMap(countStepsToEnd)
+  >> Result.flatMap(({currentNodeNames, _} as directionsAndNodes) =>
+       currentNodeNames
+       |> List.map(currentNodeName =>
+            (
+              currentNodeName,
+              countStepsToEnd(directionsAndNodes, currentNodeName),
+            )
+          )
+       |> List.foldLeft(
+            (acc, (nodeName, result)) =>
+              acc
+              |> Result.flatMap(lst =>
+                   result |> Result.map(steps => [(nodeName, steps), ...lst])
+                 ),
+            Ok([]),
+          )
+     )
   >> Result.tap(_ => Js.log("Finished counting steps - part 2"))
-  >> Result.fold(err => {j|Error: $err|j}, steps => {j|Steps: $steps|j});
+  // >> Result.map(
+  //      List.map(Tuple.second >> Int.toFloat) >> List.foldLeft(jsLcm, 1.),
+  //    )
+  // >> Result.fold(err => {j|Error: $err|j}, lcm => {j|LCM of these is $lcm|j});
+  >> Result.fold(
+       err => {j|Error: $err|j},
+       List.map(((_nodeName, steps)) => {j|$steps|j})
+       >> List.String.joinWith("\n")
+       >> (++)("Result is LCM of these values:\n"),
+     );
+
+/*
+ Results:
+   15517
+   19199
+   20777
+   11309
+   17621
+   13939
+
+ LCM of these is 13663968099527
+
+ TODO: write out something to calculate the LCM
+ */

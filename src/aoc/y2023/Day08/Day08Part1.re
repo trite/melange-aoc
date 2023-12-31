@@ -2,13 +2,11 @@ type direction =
   | Left
   | Right;
 
-[@ocaml.warning "-69"]
 type node = {
   left: string,
   right: string,
 };
 
-[@ocaml.warning "-69"]
 type directionsAndNodes = {
   directions: list(direction),
   nodes: StringMap.t(node),
