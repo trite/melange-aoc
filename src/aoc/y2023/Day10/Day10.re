@@ -63,9 +63,8 @@ let parseTile =
   | "S" => Ok(Start)
   | tile => Error({j|Invalid tile: "$tile"|j});
 
-let pipeDirectionToCoords:
-  pipeDirection => (Shared.Grid.coord, Shared.Grid.coord) = {
-  open Shared.Grid;
+let pipeDirectionToCoords: pipeDirection => (Shared.Coord.t, Shared.Coord.t) = {
+  open Shared.Coord;
   let north = {x: 0, y: (-1)};
   let south = {x: 0, y: 1};
   let east = {x: 1, y: 0};
@@ -80,7 +79,7 @@ let pipeDirectionToCoords:
   | SouthToWest => (south, west);
 };
 
-let getNeighbors = ({x, y}: Shared.Grid.coord, grid: Shared.Grid.t) =>
+let getNeighbors = ({x, y}: Shared.Coord.t, grid: Shared.Grid.t) =>
   Shared.Grid.getRangeWithCoords(
     {
       start_: {
@@ -98,12 +97,12 @@ let getNeighbors = ({x, y}: Shared.Grid.coord, grid: Shared.Grid.t) =>
 
 [@ocaml.warning "-69"]
 type edgeInfo = {
-  previousCoord: Shared.Grid.coord,
-  currentCoord: Shared.Grid.coord,
+  previousCoord: Shared.Coord.t,
+  currentCoord: Shared.Coord.t,
   stepCount: int,
 };
 
-let getEdges = (grid: Shared.Grid.t, coord: Shared.Grid.coord) =>
+let getEdges = (grid: Shared.Grid.t, coord: Shared.Coord.t) =>
   grid
   |> getNeighbors(coord)
   |> List.map(lst => {
@@ -111,12 +110,7 @@ let getEdges = (grid: Shared.Grid.t, coord: Shared.Grid.coord) =>
        lst;
      })
   |> List.map(
-       (
-         (
-           {x, y} as neighborCoord: Shared.Grid.coord,
-           valOpt: option(string),
-         ),
-       ) =>
+       (({x, y} as neighborCoord: Shared.Coord.t, valOpt: option(string))) =>
        valOpt
        |> Result.fromOption({j|No value found at coord: (x:$x, y:$y)|j})
        |> Result.tap(Js.log2("valOpt: "))
@@ -132,25 +126,25 @@ let getEdges = (grid: Shared.Grid.t, coord: Shared.Grid.coord) =>
               |> pipeDirectionToCoords
               |> (
                 ((neighbor1, neighbor2)) => {
-                  let neighbor1: Shared.Grid.coord = {
+                  let neighbor1: Shared.Coord.t = {
                     x: x + neighbor1.x,
                     y: y + neighbor1.y,
                   };
 
-                  let neighbor2: Shared.Grid.coord = {
+                  let neighbor2: Shared.Coord.t = {
                     x: x + neighbor2.x,
                     y: y + neighbor2.y,
                   };
 
-                  let coordString = neighborCoord |> Shared.Grid.coordToString;
-                  let neighbor1String = neighbor1 |> Shared.Grid.coordToString;
-                  let neighbor2String = neighbor2 |> Shared.Grid.coordToString;
+                  let coordString = neighborCoord |> Shared.Coord.toString;
+                  let neighbor1String = neighbor1 |> Shared.Coord.toString;
+                  let neighbor2String = neighbor2 |> Shared.Coord.toString;
 
                   Js.log(
                     {j|coord: $coordString, neighbor1: $neighbor1String, neighbor2: $neighbor2String|j},
                   );
 
-                  if (Shared.Grid.coordEq(coord, neighbor1)) {
+                  if (Shared.Coord.eq(coord, neighbor1)) {
                     // Js.log("NEIGHBOR 1");
                     // Ok(Some((2, neighbor2)));
                     Ok(
@@ -160,7 +154,7 @@ let getEdges = (grid: Shared.Grid.t, coord: Shared.Grid.coord) =>
                         stepCount: 2,
                       }),
                     );
-                  } else if (Shared.Grid.coordEq(coord, neighbor2)) {
+                  } else if (Shared.Coord.eq(coord, neighbor2)) {
                     // Js.log("NEIGHBOR 2");
                     // Ok(Some((2, neighbor1)));
                     Ok(
@@ -189,57 +183,78 @@ let verifyTwoEdges = (edges: list(edgeInfo)) =>
   };
 
 let walkEdge =
-    (
-      grid: Shared.Grid.t,
-      {previousCoord, currentCoord: {x, y} as currentCoord, stepCount}: edgeInfo,
-      visited: list(edgeInfo),
-    ) => {
+    (grid: Shared.Grid.t, {previousCoord, currentCoord, stepCount}: edgeInfo)
+    : result(list(edgeInfo), string) => {
   let nextCoord =
-    Shared.Grid.get(currentCoord, grid)
+      (grid: Shared.Grid.t, {x, y} as currentCoord: Shared.Coord.t) =>
+    grid
+    |> Shared.Grid.get(currentCoord)
     |> Result.fromOption("No value found at coord")
     |> Result.flatMap(parseTile)
     |> Result.flatMap(tile =>
          switch (tile) {
          | Ground => Error("Ground tile found in edge")
-         | Start =>
-           Error(
-             "Start tile found in edge (this will eventually be a success condition)",
-           )
-         | Pipe(direction) => Ok(pipeDirectionToCoords(direction))
+         | Start => Ok(`reachedStart)
+         | Pipe(direction) =>
+           Ok(`continue(pipeDirectionToCoords(direction)))
          }
        )
     |> Result.flatMap(
-         ((neighbor1: Shared.Grid.coord, neighbor2: Shared.Grid.coord)) => {
-         let neighbor1: Shared.Grid.coord = {
-           x: x + neighbor1.x,
-           y: y + neighbor1.y,
-         };
+         (
+           blah: [>
+             | `continue(Shared.Coord.t, Shared.Coord.t)
+             | `reachedStart
+           ],
+         ) =>
+         switch (blah) {
+         | `reachedStart => Ok(`finished)
+         | `continue(neighbor1, neighbor2) =>
+           let neighbor1: Shared.Coord.t = {
+             x: x + neighbor1.x,
+             y: y + neighbor1.y,
+           };
 
-         let neighbor2: Shared.Grid.coord = {
-           x: x + neighbor2.x,
-           y: y + neighbor2.y,
-         };
+           let neighbor2: Shared.Coord.t = {
+             x: x + neighbor2.x,
+             y: y + neighbor2.y,
+           };
 
-         if (Shared.Grid.coordEq(previousCoord, neighbor1)) {
-           Ok({
-             previousCoord: currentCoord,
-             currentCoord: neighbor2,
-             stepCount: 2,
-           });
-         } else if (Shared.Grid.coordEq(previousCoord, neighbor2)) {
-           Ok({
-             previousCoord: currentCoord,
-             currentCoord: neighbor1,
-             stepCount: 2,
-           });
-         } else {
-           Error("Couldn't find next coord!");
-         };
-       })
-    |> Result.map()
-                 // TODO: resume here
-;
-  ();
+           if (Shared.Coord.eq(previousCoord, neighbor1)) {
+             Ok(
+               `next({
+                 previousCoord: currentCoord,
+                 currentCoord: neighbor2,
+                 stepCount: stepCount + 1,
+               }),
+             );
+           } else if (Shared.Coord.eq(previousCoord, neighbor2)) {
+             Ok(
+               `next({
+                 previousCoord: currentCoord,
+                 currentCoord: neighbor1,
+                 stepCount: stepCount + 1,
+               }),
+             );
+           } else {
+             let previousCoord = previousCoord |> Shared.Coord.toString;
+             let neighbor1 = neighbor1 |> Shared.Coord.toString;
+             let neighbor2 = neighbor2 |> Shared.Coord.toString;
+             //  Error("Couldn't find next coord!");
+             Error(
+               {j|Couldn't find next coord! previous: $previousCoord, n1: $neighbor1, n2: $neighbor2|j},
+             );
+           };
+         }
+       );
+
+  let rec loop = (grid, edgeInfo: edgeInfo, acc) =>
+    switch (edgeInfo.currentCoord |> nextCoord(grid)) {
+    | Ok(`finished) => Ok(List.reverse(acc))
+    | Ok(`next(edgeInfo)) => loop(grid, edgeInfo, [edgeInfo, ...acc])
+    | Error(err) => Error(err)
+    };
+
+  loop(grid, {previousCoord, currentCoord, stepCount}, []);
 };
 
 let doPart1 = inputStr => {
@@ -250,6 +265,62 @@ let doPart1 = inputStr => {
   |> verifySingleResult
   |> Result.flatMap(getEdges(grid))
   |> Result.flatMap(verifyTwoEdges)
+  |> Result.flatMap(((edge1, edge2)) =>
+       edge1
+       |> walkEdge(grid)
+       |> Result.flatMap(edges1 =>
+            edge2 |> walkEdge(grid) |> Result.map(edges2 => (edges1, edges2))
+          )
+     )
+  |> Result.map(((edges1, edges2)) => {
+       let edgeMap =
+         edges1
+         |> List.map(edge => (edge.currentCoord, edge.stepCount))
+         |> Shared.Coord.Map.fromList;
+
+       edges2
+       |> List.foldLeft(
+            // (acc, edge: edgeInfo) =>
+            //   switch (Shared.Coord.Map.get(edge.currentCoord, edgeMap)) {
+            //   | None =>
+            //     failwith("Found a coord in edges2 that wasn't in edges1")
+            //   | Some(stepCount) =>
+            //     if (stepCount < edge.stepCount) {
+            //       acc;
+            //     } else {
+            //       edgeMap
+            //       |> Shared.Coord.Map.set(edge.currentCoord, edge.stepCount);
+            //     }
+            //   },
+            (acc, edge: edgeInfo) =>
+              acc
+              |> Shared.Coord.Map.update(
+                   edge.currentCoord, (stepCountOpt: option(int)) =>
+                   stepCountOpt
+                   |> (
+                     fun
+                     | Some(stepCount) =>
+                       Some(
+                         if (stepCount < edge.stepCount) {
+                           stepCount;
+                         } else {
+                           edge.stepCount;
+                         },
+                       )
+                     | None =>
+                       failwith(
+                         "Found a coord in edges2 that wasn't in edges1",
+                       )
+                   )
+                 ),
+            edgeMap,
+          )
+       |> Shared.Coord.Map.toList
+       |> List.maxBy(((_coord1, stepCount1), (_coord2, stepCount2)) =>
+            Int.compare(stepCount1, stepCount2)
+          );
+       //  |> List.maxBy(Shared.Coord.Ord.compare);
+     })
   |> Result.fold(
        err => {j|Error: $err|j},
        Js.Json.stringifyAny >> Option.getOrThrow,

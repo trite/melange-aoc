@@ -1,25 +1,16 @@
 type t;
 
-type coord = {
-  x: int,
-  y: int,
-};
-
-let coordEq: (coord, coord) => bool;
-
-let coordToString: coord => string;
-
 type coordRange = {
-  start_: coord,
-  end_: coord,
+  start_: Coord.t,
+  end_: Coord.t,
 };
 
-let get: (coord, t) => option(string);
+let get: (Coord.t, t) => option(string);
 
 let fromStringBlock: string => t;
 
-let findByValue: (string, t) => list(coord);
+let findByValue: (string, t) => list(Coord.t);
 
 let getRange: (coordRange, t) => list(list(option(string)));
 
-let getRangeWithCoords: (coordRange, t) => list((coord, option(string)));
+let getRangeWithCoords: (coordRange, t) => list((Coord.t, option(string)));

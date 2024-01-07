@@ -4,32 +4,12 @@ module IntMap = {
 
 type t = IntMap.t(IntMap.t(string));
 
-// TODO: move coord stuff to a module, ex:
-// module Coord = {
-//   type t = {
-//     x: int,
-//     y: int,
-//   };
-
-//   let eq = ({x: x1, y: y1}, {x: x2, y: y2}) => x1 == x2 && y1 == y2;
-// };
-
-type coord = {
-  x: int,
-  y: int,
-};
-
-let coordEq = ({x: x1, y: y1}, {x: x2, y: y2}) => x1 == x2 && y1 == y2;
-
-let coordToString = ({x, y}) =>
-  "(" ++ Int.toString(x) ++ ", " ++ Int.toString(y) ++ ")";
-
 type coordRange = {
-  start_: coord,
-  end_: coord,
+  start_: Coord.t,
+  end_: Coord.t,
 };
 
-let get: (coord, t) => option(string) =
+let get: (Coord.t, t) => option(string) =
   ({x, y}, grid) =>
     grid |> IntMap.get(y) |> Option.flatMap(IntMap.get(x));
 
@@ -50,7 +30,7 @@ let fromStringBlock: string => t =
      )
   >> IntMap.fromList;
 
-let findByValue: (string, t) => list(coord) =
+let findByValue: (string, t) => list(Coord.t) =
   (value, grid) =>
     grid
     |> IntMap.toList
@@ -58,7 +38,7 @@ let findByValue: (string, t) => list(coord) =
          row
          |> IntMap.toList
          |> List.filter(((_x, str)) => str == value)
-         |> List.map(((x, _)) => {x, y})
+         |> List.map(((x, _)) => ({x, y}: Coord.t))
        )
     |> List.flatten;
 
@@ -75,12 +55,12 @@ let getRange =
 
 let getRangeWithCoords =
     ({start_: {x: xStart, y: yStart}, end_: {x: xEnd, y: yEnd}}, grid)
-    : list((coord, option(string))) =>
+    : list((Coord.t, option(string))) =>
   range(yStart, yEnd + 1)
   |> List.map(y =>
        range(xStart, xEnd + 1)
        |> List.map(x => {
-            let coord = {x, y};
+            let coord: Coord.t = {x, y};
             (coord, get(coord, grid));
           })
      )
