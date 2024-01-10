@@ -260,8 +260,39 @@ let walkEdge =
     | Error(err) => Error(err)
     };
 
-  loop(grid, {previousCoord, currentCoord, stepCount}, [edgeInfo]);
+  loop(
+    grid,
+    {previousCoord, currentCoord, stepCount},
+    [
+      edgeInfo,
+      {
+        previousCoord: {
+          x: (-42),
+          y: (-42),
+        },
+        currentCoord: startPoint,
+        stepCount: 0,
+      },
+    ],
+  );
 };
+
+let walkEdges =
+    (
+      grid: Shared.Grid.t,
+      startPoint: result(Shared.Coord.t, string),
+      (edge1, edge2),
+    ) =>
+  startPoint
+  |> Result.flatMap(startPoint =>
+       edge1
+       |> walkEdge(grid, startPoint)
+       |> Result.flatMap(edges1 =>
+            edge2
+            |> walkEdge(grid, startPoint)
+            |> Result.map(edges2 => (edges1, edges2))
+          )
+     );
 
 let verifySingleResult =
   fun
@@ -282,18 +313,7 @@ let doPart1 = inputStr => {
   startPoint
   |> Result.flatMap(getEdges(grid))
   |> Result.flatMap(verifyTwoEdges)
-  |> Result.flatMap(((edge1, edge2)) =>
-       startPoint
-       |> Result.flatMap(startPoint =>
-            edge1
-            |> walkEdge(grid, startPoint)
-            |> Result.flatMap(edges1 =>
-                 edge2
-                 |> walkEdge(grid, startPoint)
-                 |> Result.map(edges2 => (edges1, edges2))
-               )
-          )
-     )
+  |> Result.flatMap(walkEdges(grid, startPoint))
   |> Result.tap(((edges1, edges2)) => {
        Js.log2("edges1: ", edges1 |> List.toArray);
        Js.log2("edges2: ", edges2 |> List.toArray);
@@ -341,11 +361,43 @@ let doPart1 = inputStr => {
      );
 };
 
-let doPart2 = const("Part 2 not implemented yet");
+[@ocaml.warning "-69"]
+type pipeInfo = {
+  coord: Shared.Coord.t,
+  tile,
+};
+
+let edgeInfoToPipeInfo = (grid: Shared.Grid.t, edges: list(edgeInfo)) => {
+  edges
+  |> List.map(edge => {
+       let coord = edge.currentCoord;
+
+       grid
+       |> Shared.Grid.get(coord)
+       |> Result.fromOption("No value found at coord")
+       |> Result.flatMap(parseTile)
+       |> Result.map(tile => {coord, tile});
+     })
+  |> List.Result.sequence;
+};
+
+// let doPart2 = const("Part 2 not implemented yet");
+let doPart2 = inputStr => {
+  let grid = Shared.Grid.fromStringBlock(inputStr);
+
+  let startPoint = grid |> Shared.Grid.findByValue("S") |> verifySingleResult;
+
+  startPoint
+  |> Result.flatMap(getEdges(grid))
+  |> Result.flatMap(verifyTwoEdges)
+  |> Result.flatMap(walkEdges(grid, startPoint))
+  |> Result.flatMap(Tuple.first >> edgeInfoToPipeInfo(grid))
+  |> Result.fold(err => {j|Error: $err|j}, List.length >> Int.toString);
+};
 
 let p1TestInput = Day10Data.testInput1;
 
-let p2TestInput = "Not there yet";
+let p2TestInput = Day10Data.p2TestInput1;
 
 let actualInput = Day10Data.actualInput;
 
