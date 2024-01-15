@@ -65,3 +65,11 @@ let getRangeWithCoords =
           })
      )
   |> List.flatten;
+
+let getAllCoords = grid =>
+  grid
+  |> IntMap.toArray
+  |> Array.map(((y, row)) =>
+       row |> IntMap.toArray |> Array.map(((x, _)) => ({x, y}: Coord.t))
+     )
+  |> Array.flatten;

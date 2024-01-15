@@ -14,3 +14,5 @@ let findByValue: (string, t) => list(Coord.t);
 let getRange: (coordRange, t) => list(list(option(string)));
 
 let getRangeWithCoords: (coordRange, t) => list((Coord.t, option(string)));
+
+let getAllCoords: t => array(Coord.t);

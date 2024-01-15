@@ -364,8 +364,48 @@ let doPart1 = inputStr => {
 [@ocaml.warning "-69"]
 type pipeInfo = {
   coord: Shared.Coord.t,
-  tile,
+  pipeDirection,
 };
+/*
+   (0, 1) = South
+   (0, -1) = North
+   (1, 0) = East
+   (-1, 0) = West
+ */
+
+let getNeighborPipes = (grid, coord: Shared.Coord.t) =>
+  coord
+  |> getEdges(grid)
+  |> Result.flatMap(verifyTwoEdges)
+  |> Result.flatMap(((edge1, edge2)) =>
+       switch (
+         (edge1.currentCoord.x - coord.x, edge1.currentCoord.y - coord.y),
+         (edge2.currentCoord.x - coord.x, edge2.currentCoord.y - coord.y),
+       ) {
+       | ((0, 1), (1, 0))
+       | ((1, 0), (0, 1)) => Ok(SouthToEast)
+       | (((-1), 0), (0, 1))
+       | ((0, 1), ((-1), 0)) => Ok(SouthToWest)
+       | ((1, 0), (0, (-1)))
+       | ((0, (-1)), (1, 0)) => Ok(NorthToEast)
+       | ((0, (-1)), ((-1), 0))
+       | (((-1), 0), (0, (-1))) => Ok(NorthToWest)
+       | ((0, (-1)), (0, 1))
+       | ((0, 1), (0, (-1))) => Ok(NorthToSouth)
+       | (((-1), 0), (1, 0))
+       | ((1, 0), ((-1), 0)) => Ok(EastToWest)
+       | ((x1, y1), (x2, y2)) =>
+         Error(
+           "Couldn't find pipe direction for coord: "
+           ++ Shared.Coord.toString(coord)
+           ++ ", edge1: "
+           ++ Shared.Coord.toString(edge1.currentCoord)
+           ++ ", edge2: "
+           ++ Shared.Coord.toString(edge2.currentCoord)
+           ++ {j|(x1: $x1, y1: $y1, x2: $x2, y2: $y2)|j},
+         )
+       }
+     );
 
 let edgeInfoToPipeInfo = (grid: Shared.Grid.t, edges: list(edgeInfo)) => {
   edges
@@ -376,23 +416,115 @@ let edgeInfoToPipeInfo = (grid: Shared.Grid.t, edges: list(edgeInfo)) => {
        |> Shared.Grid.get(coord)
        |> Result.fromOption("No value found at coord")
        |> Result.flatMap(parseTile)
-       |> Result.map(tile => {coord, tile});
+       |> Result.flatMap(
+            fun
+            | Ground => Error("Ground tile found in edge")
+            | Start =>
+              coord
+              |> getNeighborPipes(grid)
+              |> Result.map(pipeDirection => {coord, pipeDirection})
+            | Pipe(direction) => Ok({coord, pipeDirection: direction}),
+          );
      })
   |> List.Result.sequence;
 };
 
-// let doPart2 = const("Part 2 not implemented yet");
+let isInside = (pipes: list(pipeInfo), coord: Shared.Coord.t) => {
+  pipes
+  |> List.filter(pipe => pipe.coord.x < coord.x && pipe.coord.y == coord.y)
+  |> (
+    x => {
+      Js.log2("filtered x: ", x |> List.length);
+      x;
+    }
+  )
+  |> List.map(
+       fun
+       | {coord: _, pipeDirection: NorthToSouth} => 2
+       | {coord: _, pipeDirection: EastToWest} => 0
+       // Make opposing corners add up to 4
+       //   while adjacent corners add up to 2 or 6
+       //   this fixes the final problem with this method of testing
+       | {coord: _, pipeDirection: NorthToWest | SouthToEast} => 1
+       | {coord: _, pipeDirection: NorthToEast | SouthToWest} => 3,
+     )
+  |> List.Int.sum
+  |> (
+    x => {
+      let coordStr = coord |> Shared.Coord.toString;
+      Js.log({j|coord: $coordStr -- sum: $x|j});
+      x;
+    }
+  )
+  |> (
+    x => {
+      let res = Int.modulo(x, 4) != 0;
+
+      if (res) {
+        let coordStr = coord |> Shared.Coord.toString;
+        Js.log({j|coord: $coordStr -- x: $x|j});
+      };
+
+      res;
+    }
+  )
+  |> (
+    x => {
+      let coordStr = coord |> Shared.Coord.toString;
+      if (x) {
+        Js.log({j|coord: $coordStr -- isInside: $x|j});
+      };
+      x;
+    }
+  );
+};
+
 let doPart2 = inputStr => {
   let grid = Shared.Grid.fromStringBlock(inputStr);
 
   let startPoint = grid |> Shared.Grid.findByValue("S") |> verifySingleResult;
 
+  let (>>=) = (a, b) => a |> Result.flatMap(b);
+
   startPoint
-  |> Result.flatMap(getEdges(grid))
-  |> Result.flatMap(verifyTwoEdges)
-  |> Result.flatMap(walkEdges(grid, startPoint))
-  |> Result.flatMap(Tuple.first >> edgeInfoToPipeInfo(grid))
-  |> Result.fold(err => {j|Error: $err|j}, List.length >> Int.toString);
+  >>= getEdges(grid)
+  >>= verifyTwoEdges
+  >>= walkEdges(grid, startPoint)
+  >>= (Tuple.first >> edgeInfoToPipeInfo(grid))
+  |> Result.map(pipeInfos =>
+       grid
+       |> Shared.Grid.getAllCoords
+       |> (
+         x => {
+           Js.log2("all coords: ", x |> Array.length);
+           x;
+         }
+       )
+       |> Array.filter(coord =>
+            !
+              List.containsBy(
+                Shared.Coord.eq,
+                coord,
+                pipeInfos |> List.map(pipeInfo => pipeInfo.coord),
+              )
+          )
+       |> (
+         x => {
+           Js.log2("filtered coords 1: ", x |> Array.length);
+           x;
+         }
+       )
+       |> Array.filter(coord => isInside(pipeInfos, coord))
+       |> (
+         x => {
+           Js.log2("filtered coords 2: ", x |> Array.length);
+           Js.log2("filtered coords 2: ", x);
+           x;
+         }
+       )
+       |> Array.length
+     )
+  |> Result.fold(err => {j|Error: $err|j}, Int.toString);
 };
 
 let p1TestInput = Day10Data.testInput1;
@@ -400,6 +532,7 @@ let p1TestInput = Day10Data.testInput1;
 let p2TestInput = Day10Data.p2TestInput1;
 
 let actualInput = Day10Data.actualInput;
+// let actualInput = "Temporarily removed";
 
 let doSandbox = None;
 
