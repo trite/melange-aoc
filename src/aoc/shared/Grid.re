@@ -73,3 +73,26 @@ let getAllCoords = grid =>
        row |> IntMap.toArray |> Array.map(((x, _)) => ({x, y}: Coord.t))
      )
   |> Array.flatten;
+
+let getRowAtY: (t, int) => option(list((Coord.t, string))) =
+  (grid, y) =>
+    grid
+    |> IntMap.get(y)
+    |> Option.map(
+         IntMap.toList >> List.map(((x, str)) => ({x, y}: Coord.t, str)),
+       );
+
+let getRowAtYValues: (t, int) => option(list(string)) =
+  (grid, y) => getRowAtY(grid, y) |> Option.map(List.map(Tuple.second));
+
+let getColAtX: (t, int) => option(list((Coord.t, string))) =
+  (grid, x) =>
+    grid
+    |> IntMap.toList
+    |> List.map(((y, row)) =>
+         row |> IntMap.get(x) |> Option.map(str => ({x, y}: Coord.t, str))
+       )
+    |> List.Option.sequence;
+
+let getColAtYValues: (t, int) => option(list(string)) =
+  (grid, x) => getColAtX(grid, x) |> Option.map(List.map(Tuple.second));

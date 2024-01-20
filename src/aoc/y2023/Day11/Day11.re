@@ -1,4 +1,9 @@
-let doPart1 = _ => "NYI";
+// Get coords of each `#` in the grid
+let doPart1 =
+  Shared.Grid.fromStringBlock
+  >> Shared.Grid.findByValue("#")
+  >> List.map(Shared.Coord.toString)
+  >> List.String.joinWith("\n");
 
 let doPart2 = _ => "NYI";
 

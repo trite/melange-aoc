@@ -16,3 +16,11 @@ let getRange: (coordRange, t) => list(list(option(string)));
 let getRangeWithCoords: (coordRange, t) => list((Coord.t, option(string)));
 
 let getAllCoords: t => array(Coord.t);
+
+let getRowAtY: (t, int) => option(list((Coord.t, string)));
+
+let getRowAtYValues: (t, int) => option(list(string));
+
+let getColAtX: (t, int) => option(list((Coord.t, string)));
+
+let getColAtYValues: (t, int) => option(list(string));
