@@ -293,8 +293,7 @@ let doPart1 = inputStr => {
           )
        |> Option.map(Tuple.second);
      })
-  |> Result.fold(
-       err => {j|Error: $err|j},
+  |> Shared.Result.mapWithErrorText(
        Option.fold("No result found", Int.toString),
      );
 };
@@ -405,7 +404,7 @@ let doPart2 = inputStr => {
   >>= walkEdges(grid, startPoint)
   >>= (Tuple.first >> edgeInfoToPipeInfo(grid))
   |> Result.map(countInside(grid))
-  |> Result.fold(err => {j|Error: $err|j}, Int.toString);
+  |> Shared.Result.mapWithErrorText(Int.toString);
 };
 
 let p1TestInput = Day10Data.testInput1;

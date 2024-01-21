@@ -182,7 +182,7 @@ type handAndBid = {
 let _handAndBidToString = ({hand, bid}) =>
   hand
   |> List.map(cardToString)
-  |> List.String.joinWith("")
+  |> List.String.join
   |> (handStr => handStr ++ " " ++ Int.toString(bid));
 
 let compareHandAndBids = (handAndBidA, handAndBidB) =>
@@ -228,4 +228,4 @@ let doWork =
        >> List.mapWithIndex(({hand: _, bid}, index) => {bid * (index + 1)})
        >> List.Int.sum,
      )
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);

@@ -66,7 +66,7 @@ let doPart1 =
   >> Result.map(
        List.map(countPossibleVictories) >> List.foldLeft(( * ), 1),
      )
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);
 
 let p2ParseLine = (line: string, name: string) =>
   switch (line |> String.splitList(~delimiter=": ")) {
@@ -100,7 +100,7 @@ let p2Parse =
 let doPart2 =
   p2Parse
   >> Result.map(countPossibleVictories)
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);
 
 let p1TestInput = Day06Data.testInput;
 

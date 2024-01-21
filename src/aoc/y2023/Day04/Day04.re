@@ -82,7 +82,7 @@ let doPart1 =
           ),
      )
   >> List.Result.sequence
-  >> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
+  >> Shared.Result.mapWithErrorText(List.Int.sum >> Int.toString);
 
 type cardTotals = {
   cardValue: int,
@@ -190,7 +190,7 @@ let doPart2 =
      )
   >> List.Result.sequence
   >> Result.flatMap(IntMap.fromList >> countTotal)
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);
 
 let doSandbox = None;
 

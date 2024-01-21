@@ -35,7 +35,7 @@ let doPart1 =
      })
   >> List.Result.sequence
   >> Result.map(List.Int.sum)
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);
 
 type findResult =
   | Success(int, list(string))
@@ -107,7 +107,7 @@ let doPart2 =
      })
   >> List.Result.sequence
   >> Result.map(List.Int.sum)
-  >> Result.fold(err => "Error: " ++ err, Int.toString);
+  >> Shared.Result.mapWithErrorText(Int.toString);
 
 let doSandbox = None;
 
