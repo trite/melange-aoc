@@ -117,6 +117,26 @@ let doPart1 =
      )
   >> Shared.Result.mapWithErrorText(Js.Json.stringifyAny >> Option.getOrThrow);
 
+/*
+   Strategy:
+     Making the expanded universe section 1,000,000 times larger
+       than the original will be computationally silly, since
+       the grid stores things as a Map of Maps.
+
+     For part 2's "expand universe" step try getting the list of
+       rows and columns to expand, then simply returning those.
+
+     The function for counting distance will need to check how many
+       of these "expanded" rows/cols are crossed by a line between
+       two points, and then add `the multiplier` to the total.
+
+     `The multiplier` should be scalable so I can set it to 10 and
+       100 and verify the correct results come out.
+
+     The result for a 10x multiplier should be 1030
+     The result for a 100x multiplier should be 8410
+ */
+
 let doPart2 = _ => "NYI";
 
 let p1TestInput = Day11Data.testInputP1;
