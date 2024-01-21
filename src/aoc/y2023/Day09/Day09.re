@@ -60,7 +60,7 @@ let doWork = partFunc =>
   >> List.map(parseLine >> Result.flatMap(partFunc))
   >> List.Result.sequence
   >> Result.map(List.Int.sum)
-  >> Result.fold(err => {j|Error: $err|j}, Int.toString);
+  >> Result.fold(makeErrorMessage, Int.toString);
 
 let doPart1 = doWork(getNextValue);
 

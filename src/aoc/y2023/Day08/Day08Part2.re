@@ -194,7 +194,7 @@ let doPart2 =
   >> Result.map(
        List.map(Tuple.second >> Int.toFloat) >> List.foldLeft(jsLcm, 1.),
      )
-  >> Result.fold(err => {j|Error: $err|j}, lcm => {j|$lcm|j});
+  >> Result.fold(makeErrorMessage, lcm => {j|$lcm|j});
 
 /*
  Results of each cycle:
