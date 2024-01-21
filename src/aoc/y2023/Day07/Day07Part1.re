@@ -189,7 +189,7 @@ type handAndBid = {
 let _handAndBidToString = ({hand, bid}) =>
   hand
   |> List.map(cardToString)
-  |> List.String.joinWith("")
+  |> List.String.join
   |> (handStr => handStr ++ " " ++ Int.toString(bid));
 
 let compareHandAndBids = (handAndBidA, handAndBidB) =>
@@ -235,4 +235,4 @@ let doWork =
        >> List.map(_handAndBidToString)
        >> List.String.joinWith("\n"),
      )
-  >> Result.fold(err => "Error: " ++ err, id);
+  >> Shared.Result.mapWithErrorText(id);

@@ -20,7 +20,7 @@ let rowsToGrid: list(IntMap.t(string)) => t =
   List.mapWithIndex((row, i) => (i, row)) >> IntMap.fromList;
 
 let rowToString: IntMap.t(string) => string =
-  IntMap.toList >> List.map(Tuple.second) >> List.String.joinWith("");
+  IntMap.toList >> List.map(Tuple.second) >> List.String.join;
 
 let getHeight: t => int = grid => grid |> IntMap.length;
 
@@ -97,7 +97,7 @@ let toString = grid =>
        Tuple.second
        >> IntMap.toList
        >> List.map(Tuple.second)
-       >> List.String.joinWith(""),
+       >> List.String.join,
      )
   |> List.String.joinWith("\n");
 
@@ -224,7 +224,19 @@ let insertColAt: (int, list(string), t) => result(t, string) =
          )
       |> List.Result.sequence
       |> Result.map(IntMap.fromList)
-    | _ => Error("Column length does not match")
+    | (l1, Some(l2)) =>
+      let currentCol = l2 |> List.map(Tuple.second) |> List.String.join;
+      let l2 = l2 |> List.length;
+      let newCol = newCol |> List.String.join;
+
+      Error(
+        {j|Column length does not match.
+  l1: $l1
+  l2: $l2
+  newCol: $newCol
+  curCol: $currentCol
+  x: $x|j},
+      );
     };
 
 // Verify that insertRowAt and insertcolAt work as intended
@@ -237,7 +249,7 @@ assert(
   |> fromStringBlock
   |> insertRowAt(2, ["-", "-", "-", "-", "-"])
   |> Result.flatMap(insertColAt(2, ["|", "|", "|", "|", "|", "|"]))
-  |> Result.fold(Shared__Globals.makeErrorMessage, toString)
+  |> Shared__Result.mapWithErrorText(toString)
   == {|**|***
 **|***
 --|---
@@ -258,7 +270,7 @@ assert(
   |> Result.flatMap(insertColAt(2, ["|", "|", "|", "|", "|", "|"]))
   |> Result.map(
        getRowAtY(2)
-       >> Option.map(List.map(Tuple.second) >> List.String.joinWith(""))
+       >> Option.map(List.map(Tuple.second) >> List.String.join)
        >> Option.fold(false, str => str == "--|---"),
      )
   |> Result.fold(Shared__Globals.const(false), id),

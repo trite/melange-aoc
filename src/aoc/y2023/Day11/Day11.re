@@ -5,43 +5,11 @@
 //   >> List.map(Shared.Coord.toString)
 //   >> List.String.joinWith("\n");
 
-// type emptyRowsAndCols = {
-//   emptyRows: list((int, string)),
-//   emptyCols: list((int, string)),
-// };
-
-// let getEmptyRowsAndColumns = grid => {
-//   let emptyRows =
-//     grid
-//     |> Shared.Grid.getRowsWithId
-//     |> List.map(((i, str)) =>
-//          if (str |> String.contains(~search="#")) {
-//            None;
-//          } else {
-//            Some((i, str));
-//          }
-//        )
-//     |> List.catOptions;
-
-//   let emptyCols =
-//     grid
-//     |> Shared.Grid.getColsWithId
-//     |> List.map(((i, str)) =>
-//          if (str |> String.contains(~search="#")) {
-//            None;
-//          } else {
-//            Some((i, str));
-//          }
-//        )
-//     |> List.catOptions;
-
-//   {emptyRows, emptyCols};
-// };
-
 let expandUniverse = grid => {
+  let rows = grid |> Shared.Grid.getRowsWithId;
+
   let emptyRows =
-    grid
-    |> Shared.Grid.getRowsWithId
+    rows
     |> List.map(((i, str)) =>
          if (str |> String.contains(~search="#")) {
            None;
@@ -59,52 +27,70 @@ let expandUniverse = grid => {
          if (str |> String.contains(~search="#")) {
            None;
          } else {
-           Some((i, str));
+           let strLen = str |> String.length;
+           // rowLen = row length after expansion
+           // need to match this before adding to grid
+           // or get errors since row lengths don't match
+           let rowLen = List.length(rows) + List.length(emptyRows);
+           let diff = rowLen - strLen;
+           Js.log2("diff", diff);
+           Some((i, str ++ String.repeat(diff, ".")));
          }
        )
     |> List.catOptions
     |> List.reverse;
 
+  Js.log2("emptyRows", emptyRows |> List.toArray);
+  Js.log2("emptyCols", emptyCols |> List.toArray);
+
   grid
   |> Result.pure
   |> List.foldLeft(
        (grid, (i, str)) =>
-         grid |> Shared.Grid.insertRowAt(i, str |> String.toList),
+         grid
+         |> Result.flatMap(Shared.Grid.insertRowAt(i, str |> String.toList)),
        _,
        emptyRows,
      )
   |> List.foldLeft(
        (grid, (i, str)) =>
-         grid |> Shared.Grid.insertColAt(i, str |> String.toList),
+         grid
+         |> Result.flatMap(Shared.Grid.insertColAt(i, str |> String.toList)),
        _,
        emptyCols,
-     )
-  |> ignore; // TODO: Remove this
-
-  // emptyRows |> List.foldLeft()
-
-  Js.log2("emptyRows", emptyRows |> List.toArray);
-  Js.log2("emptyCols", emptyCols |> List.toArray);
-
-  // TODO: just returning the original grid for now to do some data inspection
-  //       still need to order the empty rows/cols in descending order based on `i` given `((i, str))`
-  //       and then insert them in that order (should be able to use `s/Shared.Grid.insert(Row|Col)At/` for this)
-  grid;
-  // grid
-  // |> Shared.Grid.insert
-  // let grid =
-  // emptyRows
-  // |> List.map(((i, str)) => )
+     );
 };
 
+// Test out the universe expansion function
+assert(
+  Day11Data.testInputP1
+  |> Shared.Grid.fromStringBlock
+  |> expandUniverse
+  |> Result.fold(
+       _ => false,
+       grid =>
+         grid |> Shared.Grid.toString === Day11Data.testInputP1ExpandedUniverse,
+     ),
+);
+
+/*
+   TODO:
+     - Get coords of all `#` in grid
+     - Write function to count steps from one `#` to another
+       * abs(x2 - x1) + abs(y2 - y1) + maybe some off-by-1 correction(s)
+     - Write function to run the above function for every pair of `#` in the grid
+     - Sum it all up
+ */
 let doPart1 =
-  Shared.Grid.fromStringBlock >> expandUniverse >> Shared.Grid.toString;
+  Shared.Grid.fromStringBlock
+  >> expandUniverse
+  >> Shared.Result.mapWithErrorText(Shared.Grid.toString);
 
 let doPart2 = _ => "NYI";
 
-let p1TestInput = Day11Data.testInput;
+let p1TestInput = Day11Data.testInputP1;
 
-let p2TestInput = Day11Data.testInput;
+let p2TestInput = "Not there yet";
 
 let actualInput = Day11Data.actualInput;
 

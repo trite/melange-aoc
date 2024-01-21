@@ -151,4 +151,4 @@ let parse =
 let doPart1 =
   parse
   >> Result.flatMap(countStepsToEnd)
-  >> Result.fold(makeErrorMessage, steps => {j|Steps: $steps|j});
+  >> Shared.Result.mapWithErrorText(steps => {j|Steps: $steps|j});

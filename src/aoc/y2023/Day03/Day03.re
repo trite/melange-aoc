@@ -205,7 +205,7 @@ let doPart1 = (input: string) => {
        |> Result.map(List.foldLeft((a, b) => a + b, 0))
      )
   |> List.Result.sequence
-  |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
+  |> Shared.Result.mapWithErrorText(List.Int.sum >> Int.toString);
 };
 
 let findStars = (input: list(list(string))) =>
@@ -337,7 +337,7 @@ let doPart2 = (input: string) => {
           )
      )
   |> List.Result.sequence
-  |> Result.fold(err => "Error: " ++ err, List.Int.sum >> Int.toString);
+  |> Shared.Result.mapWithErrorText(List.Int.sum >> Int.toString);
 };
 
 let doSandbox = None;

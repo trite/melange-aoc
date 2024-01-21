@@ -174,7 +174,7 @@ let doPart1 =
        |> List.Float.min
        |> Result.fromOption("Failed to find min seed value")
      )
-  >> Result.fold(err => "Error: " ++ err, Float.toString);
+  >> Shared.Result.mapWithErrorText(Float.toString);
 
 type p2Map = {
   start_: float,
@@ -393,10 +393,7 @@ let doPart2 =
        |> List.map(checkSeedAgainstMaps(_, almanac.humidityToLocation))
      )
   >> Result.map(List.foldLeft(List.concat, []) >> findMinValue)
-  >> Result.fold(
-       err => "Error: " ++ err,
-       Js.Json.stringifyAny >> Option.getOrThrow,
-     );
+  >> Shared.Result.mapWithErrorText(Js.Json.stringifyAny >> Option.getOrThrow);
 
 let doSandbox = None;
 
