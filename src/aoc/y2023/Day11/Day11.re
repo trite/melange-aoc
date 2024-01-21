@@ -66,26 +66,11 @@ assert(
      ),
 );
 
-/*
-   TODO:
-     - Get coords of all `#` in grid
-     - Write function to count steps from one `#` to another
-       * abs(x2 - x1) + abs(y2 - y1) + maybe some off-by-1 correction(s)
-     - Write function to run the above function for every pair of `#` in the grid
-     - Sum it all up
- */
-
-// Get coords of each `#` in the grid
-// let doPart1 =
-//   Shared.Grid.fromStringBlock
-//   >> Shared.Grid.findByValue("#")
-//   >> List.map(Shared.Coord.toString)
-//   >> List.String.joinWith("\n");
-
-let _manhattanDistance =
+let manhattanDistance =
     ({x: x1, y: y1}: Shared.Coord.t, {x: x2, y: y2}: Shared.Coord.t) =>
   abs(x2 - x1) + abs(y2 - y1);
 
+// Not tail recursive, too much recursion with actual data
 // let rec uniquePairs = list =>
 //   switch (list) {
 //   | [] => []
@@ -95,39 +80,42 @@ let _manhattanDistance =
 //     let restPairs = uniquePairs(xs);
 //     List.append(pairs, restPairs);
 //   };
-
 // let uniquePairs = list => {
-
 // };
 
+// Tail recursive
+let uniquePairs: list('a) => list(('a, 'a)) =
+  list => {
+    let rec go = (acc, list) =>
+      switch (list) {
+      | [] => acc
+      | [x, ...xs] =>
+        let pairs = List.map(y => (x, y), xs);
+        go(List.concat(pairs, acc), xs);
+      };
+    go([], list);
+  };
+
 let doPart1 =
-  // _ =>
   Shared.Grid.fromStringBlock
   >> expandUniverse
   >> Result.map(
        Shared.Grid.findByValue("#")
-       >> List.foldLeft((acc, coord) => acc |> Shared.Coord.Map.set()),
-       //  >> uniquePairs
-       //  >> List.flatten
-       //  >> List.map(((c1, c2)) => _manhattanDistance(c1, c2)),
-       // TODO: CONTINUE HERE
-       //  >> List.map(Shared.Coord.toString)
-       //  >> List.String.joinWith("\n"),
+       >> uniquePairs
+       >> List.foldLeft(
+            (acc, (c1, c2)) =>
+              acc
+              |> Shared.CoordPair.Map.set(
+                   {c1, c2}: Shared.CoordPair.t,
+                   manhattanDistance(c1, c2),
+                 ),
+            Shared.CoordPair.Map.make(),
+          )
+       >> Shared.CoordPair.Map.toArray
+       >> Array.map(Tuple.second)
+       >> Array.Int.sum,
      )
-  // >> Shared.Result.mapWithErrorText(id);
   >> Shared.Result.mapWithErrorText(Js.Json.stringifyAny >> Option.getOrThrow);
-
-// let doPart1 = _ =>
-//   [1, 2, 3, 4, 5, 6, 7, 8, 9]
-//   |> uniquePairs
-//   |> List.map(
-//        List.map(((x, y)) => {j|(x:$x, y:$y)|j})
-//        >> List.String.joinWith(", "),
-//      )
-//   |> List.String.joinWith("\n");
-
-// let doPart1 = _ =>
-//   manhattanDistance({x: 4, y: 0}, {x: 9, y: 10}) |> string_of_int;
 
 let doPart2 = _ => "NYI";
 
