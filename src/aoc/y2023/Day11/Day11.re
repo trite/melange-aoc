@@ -1,4 +1,9 @@
-let expandUniverse = grid => {
+type emptyRowsAndCols = {
+  emptyRows: list((int, string)),
+  emptyCols: list((int, string)),
+};
+
+let getEmptyRowsAndColumns = grid => {
   let rows = grid |> Shared.Grid.getRowsWithId;
 
   let emptyRows =
@@ -32,6 +37,12 @@ let expandUniverse = grid => {
        )
     |> List.catOptions
     |> List.reverse;
+
+  {emptyRows, emptyCols};
+};
+
+let expandUniverse = grid => {
+  let {emptyRows, emptyCols} = getEmptyRowsAndColumns(grid);
 
   Js.log2("emptyRows", emptyRows |> List.toArray);
   Js.log2("emptyCols", emptyCols |> List.toArray);
@@ -112,10 +123,17 @@ let doPart1 =
             Shared.CoordPair.Map.make(),
           )
        >> Shared.CoordPair.Map.toArray
-       >> Array.map(Tuple.second)
-       >> Array.Int.sum,
+       >> Array.map((({c1, c2}: Shared.CoordPair.t, dist)) => {
+            let c1 = Shared.Coord.toString(c1);
+            let c2 = Shared.Coord.toString(c2);
+            {j|{ "c1": $c1, "c2": $c2, "dist": $dist, }|j};
+          })
+       >> Array.String.joinWith(",\n"),
+       //  >> Array.map(Tuple.second),
+       //  >> Array.Int.sum,
      )
-  >> Shared.Result.mapWithErrorText(Js.Json.stringifyAny >> Option.getOrThrow);
+  >> Shared.Result.mapWithErrorText(id);
+// >> Shared.Result.mapWithErrorText(Js.Json.stringifyAny >> Option.getOrThrow);
 
 /*
    Strategy:
@@ -137,11 +155,102 @@ let doPart1 =
      The result for a 100x multiplier should be 8410
  */
 
-let doPart2 = _ => "NYI";
+// let doPart2 = _ => "NYI";
+
+// let getMultiplier = (baseMultiplier: int, )
+
+// let p2ManhattanDistance =
+//     (
+//       {x: x1, y: y1}: Shared.Coord.t,
+//       {x: x2, y: y2}: Shared.Coord.t,
+//       baseMultiplier: int,
+//       emptyRowsAndCols: emptyRowsAndCols,
+//     ) =>
+//   manhattanDistance(
+//     {x: x1, y: y1},
+//     {
+//       x:
+//         x2
+//         + (
+//           emptyRowsAndCols.emptyCols
+//           |> List.filter(((i, _)) => i < x2 && i > x1 || i < x1 && i > x2)
+//           |> List.length
+//         )
+//         * baseMultiplier,
+
+//       y:
+//         y2
+//         + (
+//           emptyRowsAndCols.emptyRows
+//           |> List.filter(((i, _)) => i < y2 && i > y1 || i < y1 && i > y2)
+//           |> List.length
+//         )
+//         * baseMultiplier,
+//     },
+//   );
+
+// let expandUniverse2
+
+let doPart2 = inputStr => {
+  let grid = inputStr |> Shared.Grid.fromStringBlock;
+
+  let emptyRowsAndCols = getEmptyRowsAndColumns(grid);
+
+  let baseMultiplier = 2;
+
+  grid
+  |> Shared.Grid.findByValue("#")
+  |> List.map(({x, y}: Shared.Coord.t) =>
+       (
+         {
+           x:
+             x
+             + (
+               emptyRowsAndCols.emptyCols
+               |> List.filter(((i, _)) => i < x)
+               |> List.length
+             )
+             * (baseMultiplier - 1),
+
+           y:
+             y
+             + (
+               emptyRowsAndCols.emptyRows
+               |> List.filter(((i, _)) => i < y)
+               |> List.length
+             )
+             * (baseMultiplier - 1),
+         }: Shared.Coord.t
+       )
+     )
+  |> uniquePairs
+  |> List.foldLeft(
+       (acc, (c1, c2)) =>
+         acc
+         |> Shared.CoordPair.Map.set(
+              {c1, c2}: Shared.CoordPair.t,
+              // p2ManhattanDistance(c1, c2, baseMultiplier, emptyRowsAndCols),
+              manhattanDistance(c1, c2),
+            ),
+       Shared.CoordPair.Map.make(),
+     )
+  |> Shared.CoordPair.Map.toArray
+  // |> Array.map(Tuple.second)
+  |> Array.map((({c1, c2}: Shared.CoordPair.t, dist)) => {
+       let c1 = Shared.Coord.toString(c1);
+       let c2 = Shared.Coord.toString(c2);
+       {j|{ "c1": $c1, "c2": $c2, "dist": $dist, }|j};
+     })
+  |> Array.String.joinWith(",\n");
+  // |> Js.Json.stringifyAny
+  // |> Option.getOrThrow;
+  // |> Array.Int.sum
+  // |> Int.toString;
+};
 
 let p1TestInput = Day11Data.testInputP1;
 
-let p2TestInput = "Not there yet";
+let p2TestInput = Day11Data.testInputP1;
 
 let actualInput = Day11Data.actualInput;
 
