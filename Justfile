@@ -34,14 +34,6 @@ watch:
 build:
   {{ dune }} build
 
-# Preview the production build
-preview: build
-  npx vite preview
-
 # Serve the app
 serve:
-  npx vite _build/default
-
-# Executes `watch` and `serve` concurrently
-dev:
-  npx concurrently 'just watch' 'just serve'
+  webpack serve --open --mode development --entry ./_build/default/src/output/src/ReactApp.js --history-api-fallback

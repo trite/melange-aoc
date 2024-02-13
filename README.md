@@ -72,6 +72,6 @@ This repo uses the [Just command runner](https://github.com/casey/just) for comm
 * Run after updating dependencies: `just install`
 * Build once: `just build`
 * Build and watch for changes: `just watch`
-* Serve the site: `just serve`
+* Serve the site (works best in a 2nd terminal, with `just watch` running in the first): `just serve`
 * Remove opam switch, build artifacts, and node modules, requiring re-initialization: `just hard-reset`
 * Everything has gone horribly wrong, [fix it fix it fix it](https://www.youtube.com/watch?v=8ZCysBT5Kec): `just hard-reset init`
