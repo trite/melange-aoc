@@ -1,21 +1,46 @@
-(lang dune 3.8)
+(lang dune 3.11)
 
 (using melange 0.1)
 
 (name melange-aoc)
 
-(license "MIT")
+(license MIT)
 
-(maintainers <your_name>)
+(generate_opam_files true)
 
-(authors <your_name>)
+(source
+ (github trite/melange-aoc))
 
-(homepage https://github.com/your/project)
+(documentation https://github.com/trite/melange-aoc)
 
-(bug_reports https://github.com/your/project/issues)
+(maintainers "Paul Brunner")
+
+(authors "Paul Brunner")
+
+(homepage https://github.com/trite/melange-aoc)
+
+(bug_reports https://github.com/trite/melange-aoc/issues)
 
 (package
  (allow_empty)
  (name melange-aoc)
- (synopsis "Melange project")
- (description "Minimal melange project"))
+ (synopsis "Advent of Code in ReasonML")
+ (description "Advent of Code in ReasonML, compiled with Melange")
+ (depends
+  (dune
+   (>= 3.11))
+  (melange
+   (>= 2.1.0))
+  (ocaml
+   (>= 5.1.0))
+  opam-check-npm-deps
+  dot-merlin-reader
+  (ocamlformat
+   (>= 0.26.1))
+  ppx_deriving
+  (reason
+   (>= 3.10.0))
+  (reason-react
+   (>= 0.13.0))
+  reason-react-ppx
+  relude))
