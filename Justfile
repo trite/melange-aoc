@@ -38,6 +38,16 @@ build:
 serve:
   npx webpack serve --open --mode development --entry ./_build/default/src/output/src/ReactApp.js --history-api-fallback
 
-# Bundle
+# Bundle for production (this is hacky, and should be done on the `publish` branch)
 bundle:
+  #!/usr/bin/env sh
+
+  # Bundle the app
   npx webpack --mode production --entry ./_build/default/src/output/src/ReactApp.js
+
+  # Make sure the docs folder exists
+  if [ ! -d docs ]; then mkdir docs; fi
+
+  # Copy over the necessary files, overwriting them if necessary
+  cp -f public/index.html docs/index.html
+  cp -f dist/main.js docs/main.js
