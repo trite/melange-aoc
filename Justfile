@@ -36,4 +36,8 @@ build:
 
 # Serve the app
 serve:
-  webpack serve --open --mode development --entry ./_build/default/src/output/src/ReactApp.js --history-api-fallback
+  npx webpack serve --open --mode development --entry ./_build/default/src/output/src/ReactApp.js --history-api-fallback
+
+# Bundle
+bundle:
+  npx webpack --mode production --entry ./_build/default/src/output/src/ReactApp.js
